@@ -2,7 +2,7 @@
 name = "zyzy"
 version = "0.1.0"
 description = "zyzy"
-authors = []
+authors = ["MerkyGao"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
