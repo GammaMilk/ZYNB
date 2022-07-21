@@ -82,3 +82,6 @@ async def _sign_qq_handler(bot: Bot, event: MessageEvent, state: T_State):
 @_sign_main_decorator
 async def _sign_tg_handler(bot: tg.Bot, event: tg.Event, state: T_State):
     await _sign_handler.finish(state['sign_result'])
+
+
+# TODO: 添加手工传送cookie的方式更新cookie
