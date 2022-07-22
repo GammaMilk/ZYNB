@@ -1,20 +1,20 @@
 import xml.etree.ElementTree as ET
 
 
-def makemsg(daomeidan: str, describe: str, img_src: str) -> str:
+def makemsg(daomeidan: str, describe: str, img_src: str, linked_url: str = "") -> str:
     msg = ET.Element("msg")
     # set msg.property
     msg.set("serviceID", "1")
-    msg.set("templateID", "-1")
+    msg.set("templateID", "1")
     msg.set("action", "web")
     msg.set("brief", f"{daomeidan}已经进群聊天")
     msg.set("sourceMsgId", "0")
-    msg.set("url", "")
+    msg.set("url", linked_url)
     msg.set("flag", "0")
     msg.set("adverSign", "0")
     msg.set("multiMsgFlag", "0")
     item = ET.SubElement(msg, "item")
-    item.set("layout", "2")
+    item.set("layout", "2")  # 排版
     item.set("advertiser_id", "0")
     item.set("aid", "0")
     pic = ET.SubElement(item, "picture")
