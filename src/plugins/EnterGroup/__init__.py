@@ -43,6 +43,8 @@ async def _sign_qq_handler(bot: Bot, event: MessageEvent, state: T_State):
         c = makemsg.makemsg(strsmsg[0], strsmsg[1], defalut_img)
     elif len(strsmsg) == 3:
         c = makemsg.makemsg(strsmsg[0], strsmsg[1], strsmsg[2])
+    elif len(strsmsg) == 4:
+        c = makemsg.makemsg(strsmsg[0], strsmsg[1], strsmsg[2], strsmsg[3])
     else:
         await _sign_handler.finish("参数错误！")
     await _sign_handler.finish(Message(c))
