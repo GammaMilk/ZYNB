@@ -145,3 +145,5 @@ tmp/*
 Tmp/*
 Temp/*
 temp/*
+ImgCache/
+tmp.*

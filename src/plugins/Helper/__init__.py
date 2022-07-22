@@ -30,7 +30,7 @@ __plugin_settings__ = {
 }
 
 helpHandler = on_command("help", priority=5, block=True)
-testHandler = on_startswith("tt", priority=5, block=True)
+th = on_startswith("tt", priority=5, block=True)
 
 # 地图
 
@@ -45,6 +45,31 @@ async def h2(bot: tg.Bot, event: tg.Event, state: T_State):
     await helpHandler.finish(__plugin_usage__)
 
 
-@testHandler.handle()
+@th.handle()
 async def test_handler(bot: Bot, event: MessageEvent, state: T_State):
-    pass
+    msgstrs = event.message.extract_plain_text().split(" ")
+    if len(msgstrs) == 1:
+        pass
+    else:
+        state['echo'] = msgstrs[1]
+    #TODO 
+
+
+@th.got('echo', prompt="Input your echo message:")
+async def _(
+    bot: Bot, 
+    event: MessageEvent, 
+    state: T_State, 
+    echo: str = ArgStr('echo')
+    ):
+    await th.send(echo)
+
+
+@th.got('xhello', prompt="Input your xhello message:")
+async def _(
+    bot: Bot, 
+    event: MessageEvent, 
+    state: T_State, 
+    xhello: str = ArgStr('xhello')
+    ):
+    await th.send(xhello)
