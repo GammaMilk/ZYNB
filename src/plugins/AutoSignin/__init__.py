@@ -52,15 +52,16 @@ for key, value in sign_cookie.items():
 
 
 async def _sign_main():
-    # cli = httpx.Client(cookies=sign_cookie, headers={
-    #     'User-Agent': _UA}, proxies={"https://": "http://localhost:10809"})
-    # r = cli.request("POST", r"https://jinkela.lol/user/checkin")
     async with httpx.AsyncClient(cookies=sign_cookie, headers={
             'User-Agent': _UA}, proxies={"https://": "http://localhost:10809"}) as cli:
-        r = await cli.post("https://jinkela.lol/user/checkin")
-        if r.status_code == 200:
-            if js := r.json():
-                return js['msg']
+        try:
+            r = await cli.post("https://jinkela.lol/user/checkin")
+            if r.status_code == 200:
+                if js := r.json():
+                    return js['msg']
+        except Exception as e:
+            logger.error(e)
+            return "签到失败"
         return "签到失败"
 
 
