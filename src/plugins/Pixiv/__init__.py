@@ -14,7 +14,6 @@ from nonebot.log import logger
 # from utils.http_utils import AsyncHttpx
 import json
 import httpx
-from lxml import etree
 
 from pydantic import BaseModel, Extra
 
