@@ -1,3 +1,6 @@
+from lib2to3.pgen2 import driver
+from pydoc import cli
+from xml.dom.minidom import TypeInfo
 import nonebot
 from nonebot import on_command, on_startswith
 from nonebot.typing import T_State
@@ -5,17 +8,34 @@ from nonebot.params import State, CommandArg, ArgStr
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, Event, GroupMessageEvent, PrivateMessageEvent
 import nonebot.adapters.telegram as tg
 from nonebot.log import logger
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
-# from utils.http_utils import AsyncHttpx
 import json
-import requests
 import httpx
-import xml.etree.ElementTree as ET
+from motor import motor_asyncio
+from pydantic import BaseModel
 
-__zx_plugin_name__ = "APEX查询工具2"
+
+def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
+    client = nonebot.require("nonebot_plugin_navicat")
+    client = client.mongodb_client
+    assert(isinstance(client, motor_asyncio.AsyncIOMotorClient))
+    return client
+
+
+client = get_right_db_client()
+db = client['db_pixiv']
+c = db['pixiv_data']
+
+
+class DBModelPixiv(BaseModel):
+    pid: int
+    local: bool
+    orl: str
+    lpath: str
+
+
+__zx_plugin_name__ = "帮助和测试模块"
 __plugin_usage__ = """
-usage：
+usage:
     帮助：（未完成）
 """.strip()
 __plugin_des__ = "帮助模块"
@@ -37,7 +57,7 @@ th = on_startswith("tt", priority=5, block=True)
 
 @helpHandler.handle()
 async def helper_msg_handler(bot: Bot, event: MessageEvent, state: T_State):
-    await helpHandler.finish(__plugin_usage__)
+    pass
 
 
 @helpHandler.handle()
@@ -47,29 +67,4 @@ async def h2(bot: tg.Bot, event: tg.Event, state: T_State):
 
 @th.handle()
 async def test_handler(bot: Bot, event: MessageEvent, state: T_State):
-    msgstrs = event.message.extract_plain_text().split(" ")
-    if len(msgstrs) == 1:
-        pass
-    else:
-        state['echo'] = msgstrs[1]
-    #TODO 
-
-
-@th.got('echo', prompt="Input your echo message:")
-async def _(
-    bot: Bot, 
-    event: MessageEvent, 
-    state: T_State, 
-    echo: str = ArgStr('echo')
-    ):
-    await th.send(echo)
-
-
-@th.got('xhello', prompt="Input your xhello message:")
-async def _(
-    bot: Bot, 
-    event: MessageEvent, 
-    state: T_State, 
-    xhello: str = ArgStr('xhello')
-    ):
-    await th.send(xhello)
+    pass
