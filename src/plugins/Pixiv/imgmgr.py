@@ -1,3 +1,4 @@
+import dbm
 import re
 from typing import Iterable
 import httpx
@@ -80,7 +81,7 @@ async def get_img_by_pid(pid: int) -> bytes:
             pid=pid, local=True, url=img_original_url, lpath=f"{_cache_dir}/{pid}.{img_suffix}")
         with open(item.lpath, "wb") as f:
             f.write(img)
-        await c.insert_one(item.dict())
+        await dbmgr.get_db_collection().insert_one(item.dict())
     return img
 
 
