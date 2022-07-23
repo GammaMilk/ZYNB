@@ -18,11 +18,7 @@ import httpx
 from pydantic import BaseModel, Extra
 
 
-class Config(BaseModel, extra=Extra.ignore):
-    pixiv_proxy: str
-
-
-__zx_plugin_name__ = "p"
+__zx_plugin_name__ = "pixiv_helper"
 __plugin_usage__ = """
 usage：
     p [pixiv_id]
@@ -38,10 +34,24 @@ __plugin_settings__ = {
     "cmd": __plugin_cmd__,
 }
 
+# logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} {level} {message}",
+#            level="INFO", filter=__zx_plugin_name__)
+
+
+class Config(BaseModel, extra=Extra.ignore):
+    pixiv_proxy: str
+
+
 pxv = on_command("p", priority=5, block=True)
-plugin_config = Config.parse_obj(get_driver().config)
-pxv_proxy = plugin_config.pixiv_proxy.removeprefix(
-    "https://").removeprefix("http://").removesuffix("/")
+try:
+    plugin_config = Config.parse_obj(get_driver().config)
+    pxv_proxy = plugin_config.pixiv_proxy.removeprefix(
+        "https://").removeprefix("http://").removesuffix("/")
+
+except Exception as e:
+    pxv_proxy = "i.pixiv.re"
+    logger.warning("pixiv_proxy is empty. fallback to {}".format(pxv_proxy))
+
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
 # 初始化缓存目录
 cache_dir = f"{os.path.dirname(__file__)}/ImgCache"
@@ -63,9 +73,11 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
     # TODO 增加多个pid一同识别
     pid = state['pid']
     if os.path.exists(f"{cache_dir}/{pid}.jpg"):
+        logger.info(f"HIT Cache {pid}")
         with open(f"{cache_dir}/{pid}.jpg", "rb") as f:
             await pxv.finish(MessageSegment.image(f.read()))
     if os.path.exists(f"{cache_dir}/{pid}.png"):
+        logger.info(f"HIT Cache {pid}")
         with open(f"{cache_dir}/{pid}.png", "rb") as f:
             await pxv.finish(MessageSegment.image(f.read()))
     async with httpx.AsyncClient() as client:
