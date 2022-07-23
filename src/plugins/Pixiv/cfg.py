@@ -1,4 +1,5 @@
 import os
+import toml
 
 _PATH_LOCAL_IMG_CACHE = ""
 _PXV_PROXY = "zjlnb.gmk.icu"
@@ -24,6 +25,7 @@ def get_pxv_proxy() -> str:
     if not _PXV_PROXY:
         return "i.pixiv.re"
     return _PXV_PROXY.removeprefix("https://").removeprefix("http://").removesuffix("/")
+
 
 def get_UA() -> str:
     """获取pixiv的UA

@@ -44,26 +44,10 @@ class Config(BaseModel, extra=Extra.ignore):
 
 
 pxv = on_command("p", priority=5, block=True)
-try:
-    plugin_config = Config.parse_obj(get_driver().config)
-    pxv_proxy = plugin_config.pixiv_proxy.removeprefix(
-        "https://").removeprefix("http://").removesuffix("/")
-
-except Exception as e:
-    pxv_proxy = "i.pixiv.re"
-    logger.warning("pixiv_proxy is empty. fallback to {}".format(pxv_proxy))
-
-_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
-# 初始化缓存目录
-cache_dir = f"{os.path.dirname(__file__)}/ImgCache"
-if not os.path.exists(cache_dir):
-    os.makedirs(cache_dir)
 
 
 @pxv.handle()
 async def _(bot: Bot, event: MessageEvent, state: T_State):
-    if not pxv_proxy:
-        await pxv.finish("未设置pixiv_proxy !")
     strsmsg = event.message.extract_plain_text().split(" ")
     if len(strsmsg) >= 2:
         state['pid'] = strsmsg[1]
@@ -73,6 +57,9 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
 async def _(bot: Bot, event: MessageEvent, state: T_State):
     # TODO 增加多个pid一同识别
     pid = state['pid']
+    if isinstance(pid, Message):
+        pid = pid.extract_plain_text()
+    logger.warning(f"{type(pid)}pid: {pid}")
     isPid = True if re.match(r'^\d+$', pid) else False  # 判断是否为pid
     try:
         if isPid:

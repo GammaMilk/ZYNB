@@ -9,6 +9,23 @@ _pxv_proxy = cfg.get_pxv_proxy()
 _UA = cfg.get_UA()
 
 
+async def get_img_from_local(pid: int) -> bytes:
+    """根据pid获取本地图片本体
+    Args:
+        pid: 图片id
+    Returns:
+        bytes: 图片
+    """
+    c = dbmgr.get_db_collection()
+    item = await c.find_one({"pid": pid})
+    if item:
+        item = dbmgr.DBModelPixiv.parse_obj(item)
+        if item.local:
+            with open(item.lpath, "rb") as f:
+                return f.read()
+    raise ValueError("pid无效")
+
+
 async def get_original_url_by_pid(pid: int) -> str:
     """根据pid获取原图url
     Args:
@@ -46,13 +63,10 @@ async def get_img_by_pid(pid: int) -> bytes:
         bytes: 图片
     """
     # 第一步：检查是否存在于缓存中
-    c = dbmgr.get_db_collection()
-    item = await c.find_one({"pid": pid})
-    if item:
-        item = dbmgr.DBModelPixiv.parse_obj(item)
-        if item.local:
-            with open(item.lpath, "rb") as f:
-                return f.read()
+    try:
+        return await get_img_from_local(pid)
+    except:
+        pass
     # 第二步：如果不存在，则从pixiv获取
     img_original_url = await get_original_url_by_pid(pid)
     img_url = img_original_url.replace("i.pximg.net", _pxv_proxy)
@@ -77,6 +91,10 @@ async def get_img_by_info(info: dbmgr.DBModelLolicon) -> bytes:
     Returns:
         bytes: 图片
     """
+    try:
+        return await get_img_from_local(info.pid)
+    except:
+        pass
     url = info.url.replace("i.pximg.net", _pxv_proxy)
     img_suffix = url.split(".")[-1]
     async with httpx.AsyncClient() as client:
