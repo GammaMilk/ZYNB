@@ -32,7 +32,7 @@ class DBModelPixiv(BaseModel):
     lpath: str
 
 
-__zx_plugin_name__ = "APEX查询工具2"
+__zx_plugin_name__ = "帮助和测试模块"
 __plugin_usage__ = """
 usage:
     帮助：（未完成）
