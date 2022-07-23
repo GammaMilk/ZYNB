@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import driver
 from pydoc import cli
 from xml.dom.minidom import TypeInfo
 import nonebot
@@ -56,7 +57,7 @@ th = on_startswith("tt", priority=5, block=True)
 
 @helpHandler.handle()
 async def helper_msg_handler(bot: Bot, event: MessageEvent, state: T_State):
-    await helpHandler.finish(__plugin_usage__)
+    pass
 
 
 @helpHandler.handle()

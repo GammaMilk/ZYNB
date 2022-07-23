@@ -7,6 +7,7 @@ from fastapi import Depends
 import nonebot
 from nonebot import get_driver, on_command, on_startswith
 from nonebot.typing import T_State
+from nonebot.plugin import PluginMetadata
 from nonebot.params import State, CommandArg, ArgStr
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, Event, GroupMessageEvent, PrivateMessageEvent, MessageSegment
 import nonebot.adapters.telegram as tg
@@ -18,22 +19,27 @@ import httpx
 from pydantic import BaseModel, Extra
 from . import imgmgr
 
-
-__zx_plugin_name__ = "pixiv_helper"
-__plugin_usage__ = """
-usage：
-    p [pixiv_id]
-""".strip()
-__plugin_des__ = "p"
-__plugin_cmd__ = ["p"]
-__plugin_version__ = 3
-__plugin_author__ = "MerkyGao"
-__plugin_settings__ = {
-    "level": 5,
-    "default_status": True,
-    "limit_superuser": False,
-    "cmd": __plugin_cmd__,
-}
+__plugin_meta__ = PluginMetadata(
+    name='pixiv',
+    description='获取简单的图片',
+    usage='''/p [pid|tag]''',
+    extra={'version': '3.1'}
+)
+# __zx_plugin_name__ = "pixiv_helper"
+# __plugin_usage__ = """
+# usage：
+#     p [pixiv_id]
+# """.strip()
+# __plugin_des__ = "p"
+# __plugin_cmd__ = ["p"]
+# __plugin_version__ = 3
+# __plugin_author__ = "MerkyGao"
+# __plugin_settings__ = {
+#     "level": 5,
+#     "default_status": True,
+#     "limit_superuser": False,
+#     "cmd": __plugin_cmd__,
+# }
 
 # logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} {level} {message}",
 #            level="INFO", filter=__zx_plugin_name__)
@@ -67,7 +73,7 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
         else:  # 此Pid是Tag
             img = await imgmgr.get_img_by_tags([pid])
     except ValueError as e:
-        await pxv.finish("pid不合法")
+        await pxv.finish(str(e))
     except Exception as e:
         await pxv.finish("获取图片失败,其他错误")
     if img:
