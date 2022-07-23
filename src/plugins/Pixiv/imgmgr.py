@@ -70,6 +70,27 @@ async def get_img_by_pid(pid: int) -> bytes:
     return img
 
 
+async def get_img_by_info(info: dbmgr.DBModelLolicon) -> bytes:
+    """根据info获取图片本体
+    Args:
+        info: 图片信息
+    Returns:
+        bytes: 图片
+    """
+    url = info.url.replace("i.pximg.net", _pxv_proxy)
+    img_suffix = url.split(".")[-1]
+    async with httpx.AsyncClient() as client:
+        res = await client.get(url, headers={"User-Agent": _UA})
+        img = res.content
+    if img:
+        item = dbmgr.DBModelPixiv(
+            pid=info.pid, local=True, url=info.url, lpath=f"{_cache_dir}/{info.pid}.{img_suffix}")
+        with open(item.lpath, "wb") as f:
+            f.write(img)
+        await dbmgr.get_db_collection().insert_one(item.dict())
+    return img
+
+
 async def get_img_by_tags(tags: Iterable[str]) -> bytes:
     """根据标签获取图片本体
     Args:
@@ -78,7 +99,7 @@ async def get_img_by_tags(tags: Iterable[str]) -> bytes:
         bytes: 图片
     """
     info = await get_img_info_by_tags(tags)
-    return await get_img_by_pid(info.pid)
+    return await get_img_by_info(info)
 
 
 async def get_img_info_by_tags(tags: Iterable[str]) -> dbmgr.DBModelLolicon:
