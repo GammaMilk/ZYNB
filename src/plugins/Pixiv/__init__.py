@@ -73,8 +73,12 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
 async def _(bot: Bot, event: MessageEvent, state: T_State):
     # TODO 增加多个pid一同识别
     pid = state['pid']
+    isPid = True if re.match(r'^\d+$', pid) else False  # 判断是否为pid
     try:
-        img = await imgmgr.get_img_by_pid(int(pid))
+        if isPid:
+            img = await imgmgr.get_img_by_pid(int(pid))
+        else:  # 此Pid是Tag
+            img = await imgmgr.get_img_by_tags([pid])
     except ValueError as e:
         await pxv.finish("pid不合法")
     except Exception as e:
