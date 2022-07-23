@@ -16,6 +16,7 @@ import json
 import httpx
 
 from pydantic import BaseModel, Extra
+from . import imgmgr
 
 
 __zx_plugin_name__ = "pixiv_helper"
@@ -72,29 +73,11 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
 async def _(bot: Bot, event: MessageEvent, state: T_State):
     # TODO 增加多个pid一同识别
     pid = state['pid']
-    if os.path.exists(f"{cache_dir}/{pid}.jpg"):
-        logger.info(f"HIT Cache {pid}")
-        with open(f"{cache_dir}/{pid}.jpg", "rb") as f:
-            await pxv.finish(MessageSegment.image(f.read()))
-    if os.path.exists(f"{cache_dir}/{pid}.png"):
-        logger.info(f"HIT Cache {pid}")
-        with open(f"{cache_dir}/{pid}.png", "rb") as f:
-            await pxv.finish(MessageSegment.image(f.read()))
-    async with httpx.AsyncClient() as client:
-        URL_ART = f"https://www.pixiv.net/artworks/{pid}"
-        res = await client.get(URL_ART, headers={"User-Agent": _UA})
-        html = res.content.decode("utf-8")
-        with open(f"{os.path.dirname(__file__)}\\tmp.html", "wb") as f:
-            f.write(res.content)
-        regex = '''https://i.pximg.net/img-original/.*?[jp][pn]g'''
-        img_url = re.findall(regex, html)
-        if img_url:
-            img_url = img_url[0]
-            logger.warning(img_url)
-            img_url = img_url.replace("i.pximg.net", pxv_proxy)
-            with open(f"{cache_dir}/{pid}.png", "wb") as f:
-                r = await client.get(img_url)
-                f.write(r.content)
-            await pxv.finish(MessageSegment.image(r.content))
-        else:
-            await pxv.finish("没有找到图片")
+    try:
+        img = await imgmgr.get_img_by_pid(int(pid))
+    except ValueError as e:
+        await pxv.finish("pid不合法")
+    except Exception as e:
+        await pxv.finish("获取图片失败,其他错误")
+    if img:
+        await pxv.finish(MessageSegment.image(img))
