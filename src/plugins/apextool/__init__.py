@@ -6,6 +6,7 @@ from nonebot.typing import T_State
 from nonebot.params import State, CommandArg, ArgStr
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, Event, GroupMessageEvent, PrivateMessageEvent
 from nonebot.log import logger
+from nonebot.plugin import PluginMetadata
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 # from utils.http_utils import AsyncHttpx
@@ -17,25 +18,19 @@ import httpx
 
 import nonebot.adapters.telegram as tg
 
-__zx_plugin_name__ = "APEX查询工具"
-__plugin_usage__ = """
-usage：
-    查询APEX地图轮换：/amap
-    查询复制器：/ar
-    查询猎杀：/ap
-    查询人：/aid [橘子]
-    绑定：/abind [橘子]
-""".strip()
-__plugin_des__ = "查询APEX地图轮换、制造机轮换、猎杀信息、玩家信息"
-__plugin_cmd__ = ["a地图", "a制造", "a猎杀", "aid"]
-__plugin_version__ = 0.1
-__plugin_author__ = "AreCie, MerkyGao"
-__plugin_settings__ = {
-    "level": 5,
-    "default_status": True,
-    "limit_superuser": False,
-    "cmd": ["a地图", "a制造", "a猎杀", "aid"],
-}
+__zx_plugin_name__ = "apex"
+__plugin_meta__ = PluginMetadata(
+    name='apex',
+    description='Apex 玩家查询',
+    usage=f'''欢迎使用Apex查询
+/aid [玩家id] 查询玩家信息
+/ar 查询复制器
+/amap 查询地图
+/abind [玩家id] 绑定玩家
+/apre 查询冲猎
+此Bot配置的命令前缀：{" ".join(list(nonebot.get_driver().config.command_start))}
+'''
+)
 
 amap = on_command("amap", priority=5, block=True)
 areplicator = on_command("ar", priority=5, block=True)
@@ -44,7 +39,7 @@ ainquire = on_command("aid", priority=5, block=True)
 abind = on_command("abind", priority=5, block=True)
 
 
-@amap.handle()
+@ amap.handle()
 async def amap_handler(bot: Bot, event: MessageEvent, state: T_State):
     '''
     查询APEX地图轮换
@@ -69,7 +64,8 @@ async def amap_handler(bot: Bot, event: MessageEvent, state: T_State):
         x, y = im.size
         im = im.resize((960, 300), Image.ANTIALIAS)
 
-        addText(im, 50, GameMode_Dict[data], 20, 20)
+        # addText(im, 50, GameMode_Dict[data], 20, 20)
+        addText(im, 50, data, 20, 20)
         addText(im, 60, Map_Dict[current['code']] if current['code']
                 in Map_Dict else current['map'], 20, 90)
         # if data != "ranked":
@@ -107,7 +103,7 @@ async def amap_handler(bot: Bot, event: MessageEvent, state: T_State):
 # 复制器
 
 
-@areplicator.handle()
+@ areplicator.handle()
 async def _(bot: Bot, event: MessageEvent, state: T_State):
     url = f"https://api.mozambiquehe.re/crafting?auth={Tool_Token}"
     # resp = requests.get(url)
@@ -150,7 +146,7 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
 # 猎杀
 
 
-@apredator.handle()
+@ apredator.handle()
 async def _(bot: Bot, event: MessageEvent, state: T_State):
     url = f"https://api.mozambiquehe.re/predator?auth={Tool_Token}"
     # resp = requests.get(url)
@@ -185,7 +181,7 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
 # 绑定
 
 
-@abind.handle()
+@ abind.handle()
 async def _(event: Event, text: Message = CommandArg()):
     args = []
     if len(text) > 0:
@@ -218,7 +214,7 @@ async def _(event: Event, text: Message = CommandArg()):
 # 查询玩家信息
 
 
-@ainquire.handle()
+@ ainquire.handle()
 async def _(bot: Bot, event: Event, text: Message = CommandArg()):
     args = []
     uid = ""

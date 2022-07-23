@@ -24,7 +24,7 @@ async def get_img_from_local(pid: int) -> bytes:
         if item.local:
             with open(item.lpath, "rb") as f:
                 return f.read()
-    raise ValueError("pid无效")
+    raise ValueError("该pid对应图片不在本地")
 
 
 async def get_original_url_by_pid(pid: int) -> str:
@@ -38,7 +38,7 @@ async def get_original_url_by_pid(pid: int) -> str:
         URL_ART = f"https://www.pixiv.net/artworks/{pid}"
         res = await client.get(URL_ART, headers={"User-Agent": _UA})
         html = res.content.decode("utf-8")
-        regex = '''https://i.pximg.net/img-original/.*?[jp][pn]g'''
+        regex = '''https://i.pximg.net/img-original/.*?[jgp][pin][gf]'''
         img_url = re.findall(regex, html)
         if img_url:
             img_url = img_url[0]
