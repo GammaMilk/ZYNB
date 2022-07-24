@@ -21,6 +21,10 @@ So that you have a nonebot-cli and you can run the shell commands in the next se
 3. writing your plugins under `src/plugins` folder.
 4. run your bot using `nb run` .
 
+## Attention:
+
+1. You need MongoDB installed on your host or other server.
+
 ## Documentation
 
 See [Docs](https://v2.nonebot.dev/)
