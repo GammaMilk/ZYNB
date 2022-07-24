@@ -1,5 +1,7 @@
 # zyzy
 
+[![OSCS Status](https://www.oscs1024.com/platform/badge/GammaMilk/ZYNB.svg?size=small)](https://www.oscs1024.com/project/GammaMilk/ZYNB?ref=badge_small)
+
 **Attention the RENAME file.**
 
 Before starting this bot, you'd rename "RENAME_THIS_FILE...." to correct name. Such as RENAME_THIS_FILE_TO_.env.dev, you'd rename it to ".env.dev". And add correct information into that configure file.
