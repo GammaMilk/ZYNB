@@ -1,9 +1,9 @@
 import nonebot.plugin
 from nonebot import on_command
-from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, Arg
 from nonebot.adapters import Event
 from nonebot.adapters.onebot.v11.message import Message, MessageSegment
+from nonebot.matcher import Matcher
+from nonebot.params import Arg, CommandArg
 
 default_start = list(nonebot.get_driver().config.command_start)[0]
 helper = on_command("help", priority=1, aliases={"帮助"})
@@ -74,7 +74,8 @@ async def get_result(event: Event, content: Message = Arg()):
             results = []
             # if metadata set, use the general usage in metadata instead of legacy __usage__
             if plugin.metadata and plugin.metadata.name and plugin.metadata.usage:
-                results.extend([f'{plugin.metadata.name}: {plugin.metadata.description}', plugin.metadata.usage])
+                results.extend(
+                    [f'{plugin.metadata.name}: {plugin.metadata.description}', plugin.metadata.usage])
             else:
                 # legacy __usage__ or __doc__
                 try:

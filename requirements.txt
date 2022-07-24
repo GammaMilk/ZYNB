@@ -1,4 +1,7 @@
 nb-cli
+aiofiles
 httpx
 pillow
+nonebot-adapter-onebot
+nonebot-adapter-telegram
 nonebot-plugin-navicat[mongodb]
