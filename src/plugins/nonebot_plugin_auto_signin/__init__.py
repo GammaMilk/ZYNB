@@ -1,17 +1,22 @@
+import json
 import time
 from typing import Any
-import nonebot
-from nonebot import get_driver, on_command, on_startswith
-from nonebot.typing import T_State
-from nonebot.params import State, CommandArg, ArgStr
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, Event, GroupMessageEvent, PrivateMessageEvent
-import nonebot.adapters.telegram as tg
-from nonebot.log import logger
-# from utils.http_utils import AsyncHttpx
-import json
-import httpx
 
+# from utils.http_utils import AsyncHttpx
+import httpx
+import nonebot
+import nonebot.adapters.telegram as tg
+import nonebot.config
+from nonebot import get_driver, on_command, on_startswith, require
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent
+from nonebot.log import logger
+from nonebot.params import ArgStr, CommandArg, State
+from nonebot.typing import T_State
 from pydantic import BaseModel, Extra
+
+aps = require("nonebot_plugin_apscheduler")
+if aps:
+    from nonebot_plugin_apscheduler import scheduler
 
 
 class Config(BaseModel, extra=Extra.ignore):
@@ -34,7 +39,7 @@ __plugin_settings__ = {
     "cmd": __plugin_cmd__,
 }
 
-_sign_handler = on_command("signin", priority=5, block=True)
+sign_handler = on_command("signin", priority=5, block=True)
 plugin_config = Config.parse_obj(get_driver().config)
 # logger.error(plugin_config)
 # sign_cookie = json.loads(plugin_config.vpn_signin_cookie)
@@ -53,36 +58,47 @@ for key, value in sign_cookie.items():
 
 async def _sign_main():
     async with httpx.AsyncClient(cookies=sign_cookie, headers={
-            'User-Agent': _UA}, proxies={"https://": "http://localhost:10809"}) as cli:
+            'User-Agent': _UA}, proxies={'all://': None}) as cli:
         try:
-            r = await cli.post("https://jinkela.lol/user/checkin")
-            if r.status_code == 200:
-                if js := r.json():
-                    return js['msg']
-        except Exception as e:
-            logger.error(e)
+            res = await cli.post("https://jinkela.lol/user/checkin")
+            if res.status_code == 200:
+                if json_obj := res.json():
+                    return json_obj['msg']
+        except Exception as err:
+            logger.error(err)
             return "签到失败"
         return "签到失败"
 
 
 def _sign_main_decorator(func):
     async def _sign_main_wrapper(bot, event, state):
-        s = await _sign_main()
-        state['sign_result'] = s
+        sign_res = await _sign_main()
+        state['sign_result'] = sign_res
         await func(bot, event, state)
     return _sign_main_wrapper
 
 
-@_sign_handler.handle()
+@sign_handler.handle()
 @_sign_main_decorator
 async def _sign_qq_handler(bot: Bot, event: MessageEvent, state: T_State):
-    await _sign_handler.finish(state['sign_result'])
+    await sign_handler.finish(state['sign_result'])
 
 
-@_sign_handler.handle()
+@sign_handler.handle()
 @_sign_main_decorator
 async def _sign_tg_handler(bot: tg.Bot, event: tg.Event, state: T_State):
-    await _sign_handler.finish(state['sign_result'])
+    await sign_handler.finish(state['sign_result'])
 
 
 # TODO: 添加手工传送cookie的方式更新cookie
+
+# @scheduler.scheduled_job('interval', minutes=1, id='sign_job')
+# async def every_day():
+#     bot = nonebot.get_bot()
+#     logger.info("签到开始")
+#     sign_res = _sign_main()
+#     logger.info(sign_res)
+#     superusers = await nonebot.config.Config.superusers
+#     if superusers:
+#         _id = int(superusers[0])
+#     bot.send_private_msg(user_id=_id, message=sign_res)

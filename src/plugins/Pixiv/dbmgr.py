@@ -56,3 +56,10 @@ def get_db_collection() -> motor_asyncio.AsyncIOMotorCollection:
         motor_asyncio.AsyncIOMotorCollection: Collection
     """
     return c
+
+
+async def sync_lolicon_db(info: DBModelLolicon):
+    c = db['lolicon_data']
+    dbres = await c.find_one({"pid": info.pid})
+    if not dbres:
+        c.insert_one(info.dict())

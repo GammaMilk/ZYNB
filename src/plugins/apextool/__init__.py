@@ -1,22 +1,25 @@
-from typing import Union
-from urllib import response
-import nonebot
-from nonebot import on_command
-from nonebot.typing import T_State
-from nonebot.params import State, CommandArg, ArgStr
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, Event, GroupMessageEvent, PrivateMessageEvent
-from nonebot.log import logger
-from nonebot.plugin import PluginMetadata
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+import json
 # from utils.http_utils import AsyncHttpx
 import os
+from pathlib import Path
+from typing import Union
+from urllib import response
+
+import httpx
+import nonebot
+import nonebot.adapters.telegram as tg
+from nonebot import on_command
+from nonebot.adapters.onebot.v11 import (Bot, Event, GroupMessageEvent,
+                                         Message, MessageEvent,
+                                         PrivateMessageEvent)
+from nonebot.log import logger
+from nonebot.params import ArgStr, CommandArg, State
+from nonebot.plugin import PluginMetadata
+from nonebot.typing import T_State
+from PIL import Image, ImageDraw, ImageFont
+
 from .config import *
 from .utils import *
-import json
-import httpx
-
-import nonebot.adapters.telegram as tg
 
 __zx_plugin_name__ = "apex"
 __plugin_meta__ = PluginMetadata(
@@ -226,7 +229,7 @@ async def _(bot: Bot, event: Event, text: Message = CommandArg()):
     if len(args) >= 1:
         # response = requests.get(f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={args[0]}&platform=PC")
         # 此处改用httpx异步请求
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(proxies={"all://": None}) as client:
             response = await client.get(f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={args[0]}&platform=PC")
         uid = args[0]
         if response.status_code != 200:
@@ -241,9 +244,14 @@ async def _(bot: Bot, event: Event, text: Message = CommandArg()):
         logger.info(QQ_EA[QQ])
         # response = requests.get(
         #     f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={QQ_EA[QQ]}&platform=PC")
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'},
+            proxies={"all://": None}
+        ) as client:
             response = await client.get(
-                f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={QQ_EA[QQ]}&platform=PC")
+                f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={QQ_EA[QQ]}&platform=PC",
+                timeout=10)
         if response.status_code != 200:
             await ainquire.send('绑定的EA id疑似有误，要不...再试一次?')
             return
