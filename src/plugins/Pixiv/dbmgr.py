@@ -38,6 +38,7 @@ def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
 client = get_right_db_client()
 db = client['db_pixiv']
 c = db['pixiv_data']
+c_info = db['lolicon_data']
 
 
 def get_db_database() -> motor_asyncio.AsyncIOMotorDatabase:
@@ -59,7 +60,18 @@ def get_db_collection() -> motor_asyncio.AsyncIOMotorCollection:
 
 
 async def sync_lolicon_db(info: DBModelLolicon):
-    c = db['lolicon_data']
-    dbres = await c.find_one({"pid": info.pid})
+    dbres = await c_info.find_one({"pid": info.pid})
     if not dbres:
         c.insert_one(info.dict())
+
+
+async def get_local_info_by_tag(tags: list[str]):
+    db_query = [{'$match':
+                 {"tags": {'$all': tags}},    # 条件
+                 }] if tags else []
+    db_query += [{'$sample': {'size': 1}}]
+    cur = c_info.aggregate(db_query)
+    res = await cur.to_list(1)
+    if res:
+        return DBModelLolicon.parse_obj(res[0])
+    raise ValueError("No match imgs")

@@ -178,18 +178,23 @@ async def get_img_info_by_tags(
     url_search = r"https://api.lolicon.app/setu/v2"
     method = "POST"
     data = {"tag": list(tags)}
-    r = await client.request(method=method, url=url_search, json=data)
-    r = r.json()
-    if not r['data']:
-        raise ValueError("未找到相关图片")
-    r = r['data'][0]
-    isR18 = r['r18'] or ('R-18' in r['tags'])
-    r['r18'] = isR18
-    r['url'] = r['urls']['original'].replace("i.pixiv.re", "i.pximg.net")
-    ret = dbmgr.DBModelLolicon.parse_obj(r)
-    # 第二步 保存数据到本地数据库
-    logger.debug(f"同步数据库 {ret.pid}")
-    await dbmgr.sync_lolicon_db(ret)
+    try:
+        r = await client.request(method=method, url=url_search, json=data, timeout=10)
+        r = r.json()
+        if not r['data']:
+            raise ValueError("未找到相关图片")
+        r = r['data'][0]
+        isR18 = r['r18'] or ('R-18' in r['tags'])
+        r['r18'] = isR18
+        r['url'] = r['urls']['original'].replace("i.pixiv.re", "i.pximg.net")
+        ret = dbmgr.DBModelLolicon.parse_obj(r)
+        # 第二步 保存数据到本地数据库
+        logger.debug(f"同步数据库 {ret.pid}")
+        await dbmgr.sync_lolicon_db(ret)
+    except:
+        # Fall back to local mode
+        logger.error(f"NETWORK ERROR, FALLBACK TO LOCAL MODE")
+        ret = await dbmgr.get_local_info_by_tag(tags)
     return ret
 
 
