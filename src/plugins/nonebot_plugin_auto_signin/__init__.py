@@ -21,6 +21,7 @@ if aps:
 
 class Config(BaseModel, extra=Extra.ignore):
     vpn_signin_cookie: dict
+    superusers: list[str]
 
 
 __zx_plugin_name__ = "VNP自动签到"
@@ -44,6 +45,7 @@ plugin_config = Config.parse_obj(get_driver().config)
 # logger.error(plugin_config)
 # sign_cookie = json.loads(plugin_config.vpn_signin_cookie)
 sign_cookie = plugin_config.vpn_signin_cookie
+superuser = int(plugin_config.superusers[0])
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
 
 
@@ -64,6 +66,8 @@ async def _sign_main():
             if res.status_code == 200:
                 if json_obj := res.json():
                     return json_obj['msg']
+            elif res.status_code == 302:
+                return "请更新Cookie"
         except Exception as err:
             logger.error(err)
             return "签到失败"
@@ -92,13 +96,12 @@ async def _sign_tg_handler(bot: tg.Bot, event: tg.Event, state: T_State):
 
 # TODO: 添加手工传送cookie的方式更新cookie
 
-# @scheduler.scheduled_job('interval', minutes=1, id='sign_job')
-# async def every_day():
-#     bot = nonebot.get_bot()
-#     logger.info("签到开始")
-#     sign_res = _sign_main()
-#     logger.info(sign_res)
-#     superusers = await nonebot.config.Config.superusers
-#     if superusers:
-#         _id = int(superusers[0])
-#     bot.send_private_msg(user_id=_id, message=sign_res)
+@scheduler.scheduled_job('interval', days=1, id='sign_job')
+async def every_day():
+    bot = nonebot.get_bot()
+    logger.info("签到开始")
+    sign_res = await _sign_main()
+    logger.info(sign_res)
+    if superuser:
+        _id = superuser
+        await bot.call_api("send_private_msg", user_id=_id, message=sign_res)

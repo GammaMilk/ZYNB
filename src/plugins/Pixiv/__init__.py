@@ -38,6 +38,9 @@ class Config(BaseModel, extra=Extra.ignore):
     no_setu: typing.List[str]
 
 
+no_setu = Config.parse_obj(get_driver().config).no_setu
+
+
 async def gen_client_async():
     async with httpx.AsyncClient(proxies={"all://": None}) as client:
         yield client
@@ -46,16 +49,22 @@ pxv = on_command("p", priority=5, block=True)
 
 
 @pxv.handle()
-async def _(state: T_State, args: Message = CommandArg()):
+async def _(
+    state: T_State,
+    args: Message = CommandArg(),
+    client: httpx.AsyncClient = Depends(gen_client_async)
+):
     strsmsg = args.extract_plain_text().split(" ")
     logger.debug(f"{type(args)}ARGS: {args}")
-    if len(strsmsg) >= 1:
+    if len(strsmsg) >= 1 and strsmsg[0]:
         state['pid'] = strsmsg[0]
+    else:
+        # random one
+        img = await imgmgr.get_img_by_tags([], client)
+        await pxv.finish(MessageSegment.image(img))
 
-no_setu = Config.parse_obj(get_driver().config).no_setu
 
-
-@pxv.got('pid', prompt="请键入pid")
+@pxv.got('pid')
 async def _(
         state: T_State,
         client: httpx.AsyncClient = Depends(gen_client_async)
@@ -76,8 +85,6 @@ async def _(
             img = await imgmgr.get_img_by_tags([pid], client)
     except ValueError as e:
         await pxv.finish(str(e))
-    except Exception as e:
-        logger.error(str(e))
     if img:
         img += b'\x00'
         await pxv.finish(MessageSegment.image(img))
