@@ -77,19 +77,26 @@ async def _(
     assert(isinstance(pid, list))
     logger.warning(f"{type(pid)}pid: {pid}")
     isPid = True if re.match(r'^\d+$', pid[0]) else False  # 判断是否为pid
-    img = None
+    img = []
     try:
         if isPid:
-            img = await imgmgr.get_img_by_pid(int(pid[0]), client)
+            for p in pid:
+                isPid = True if re.match(r'^\d+$', p) else False
+                if isPid:
+                    timg = await imgmgr.get_img_by_pid(int(p), client)
+                if timg:
+                    img.append(timg)
         else:  # 此Pid是Tag
             if pid[0].lower() in no_setu:
                 await pxv.finish(f"抱歉，{pid}暂时不支持搜索哦")
-            img = await imgmgr.get_img_by_tags(pid, client)
+            pid = [x.strip("'").strip('"') for x in pid]
+            img += [await imgmgr.get_img_by_tags(pid, client)]
     except ValueError as e:
         await pxv.finish(str(e))
     if img:
-        if len(img) > 5*1024*1024:  # 图片大于5Mb
-            logger.warning(f"图片大于5Mb，将会被压缩")
-            img = imgmgr.compress_img(img)
-        img += b'\x00'
-        await pxv.finish(MessageSegment.image(img))
+        for soloimg in img:
+            if len(soloimg) > 5*1024*1024:  # 图片大于5Mb
+                logger.warning(f"图片大于5Mb，将会被压缩")
+                soloimg = imgmgr.compress_img(soloimg)
+            soloimg += b'\x00'
+            await pxv.send(MessageSegment.image(soloimg))
