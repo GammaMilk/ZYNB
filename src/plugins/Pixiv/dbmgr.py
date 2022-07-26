@@ -1,4 +1,5 @@
 from cmath import inf
+from loguru import logger
 import nonebot
 from pydantic import BaseModel
 from motor import motor_asyncio
@@ -104,8 +105,8 @@ class DBPidMgr:
 
 
 def get_db_file_mgr() -> DBPidMgr:
-    return DBPidMgr(c)
+    return DBPidMgr(db['pixiv_data'])
 
 
 def get_db_lolicon_mgr() -> DBPidMgr:
-    return DBPidMgr(c_info)
+    return DBPidMgr(db['lolicon_data'])
