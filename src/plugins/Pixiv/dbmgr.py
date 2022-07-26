@@ -1,9 +1,14 @@
+from cmath import inf
 import nonebot
 from pydantic import BaseModel
 from motor import motor_asyncio
 
 
-class DBModelPixiv(BaseModel):
+class DBBaseModelPid(BaseModel):
+    pid: int
+
+
+class DBModelPixiv(DBBaseModelPid):
     """
     Pixiv图片缓存数据库模型类
     """
@@ -13,7 +18,7 @@ class DBModelPixiv(BaseModel):
     lpath: str
 
 
-class DBModelLolicon(BaseModel):
+class DBModelLolicon(DBBaseModelPid):
     """
     Lolicon数据库模型类(r18保存之前*必须检验*)
     """
@@ -50,7 +55,7 @@ def get_db_database() -> motor_asyncio.AsyncIOMotorDatabase:
     return db
 
 
-def get_db_collection() -> motor_asyncio.AsyncIOMotorCollection:
+def get_db_file_collection() -> motor_asyncio.AsyncIOMotorCollection:
     """获取数据库Collection链接实例
 
     Returns:
@@ -62,10 +67,10 @@ def get_db_collection() -> motor_asyncio.AsyncIOMotorCollection:
 async def sync_lolicon_db(info: DBModelLolicon):
     dbres = await c_info.find_one({"pid": info.pid})
     if not dbres:
-        c.insert_one(info.dict())
+        c_info.insert_one(info.dict())
 
 
-async def get_local_info_by_tag(tags: list[str]):
+async def get_local_info_by_tags(tags: list[str]):
     db_query = [{'$match':
                  {"tags": {'$all': tags}},    # 条件
                  }] if tags else []
@@ -75,3 +80,32 @@ async def get_local_info_by_tag(tags: list[str]):
     if res:
         return DBModelLolicon.parse_obj(res[0])
     raise ValueError("No match imgs")
+
+
+class DBPidMgr:
+    client = get_right_db_client()
+    db = client['db_pixiv']
+
+    def __init__(self, collection: motor_asyncio.AsyncIOMotorCollection) -> None:
+        self.c = collection
+    # CRUD
+
+    async def insert_one(self, info: DBBaseModelPid):
+        return await self.c.insert_one(info.dict())
+
+    async def get_one_by_pid(self, pid: int):
+        return await self.c.find_one({"pid": pid})
+
+    async def update_one(self, info: DBBaseModelPid, upsert: bool = False):
+        return await self.c.update_one({'pid': info.pid}, {'$set': info.dict()}, upsert=upsert)
+
+    async def delete_one_by_pid(self, pid: int):
+        return await self.c.delete_one({'pid': pid})
+
+
+def get_db_file_mgr() -> DBPidMgr:
+    return DBPidMgr(c)
+
+
+def get_db_lolicon_mgr() -> DBPidMgr:
+    return DBPidMgr(c_info)

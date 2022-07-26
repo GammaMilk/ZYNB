@@ -1,5 +1,6 @@
 from base64 import b64decode, b64encode
 import os
+import io
 import sys
 import re
 import time
@@ -42,7 +43,7 @@ no_setu = Config.parse_obj(get_driver().config).no_setu
 
 
 async def gen_client_async():
-    async with httpx.AsyncClient(proxies={"all://": None}) as client:
+    async with httpx.AsyncClient() as client:
         yield client
 
 pxv = on_command("p", priority=5, block=True)
@@ -86,5 +87,8 @@ async def _(
     except ValueError as e:
         await pxv.finish(str(e))
     if img:
+        if len(img) > 5*1024*1024:  # 图片大于5Mb
+            logger.warning(f"图片大于5Mb，将会被压缩")
+            img = imgmgr.compress_img(img)
         img += b'\x00'
         await pxv.finish(MessageSegment.image(img))

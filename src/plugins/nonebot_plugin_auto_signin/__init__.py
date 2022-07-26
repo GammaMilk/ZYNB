@@ -60,7 +60,7 @@ for key, value in sign_cookie.items():
 
 async def _sign_main():
     async with httpx.AsyncClient(cookies=sign_cookie, headers={
-            'User-Agent': _UA}, proxies={'all://': None}) as cli:
+            'User-Agent': _UA}) as cli:
         try:
             res = await cli.post("https://jinkela.lol/user/checkin")
             if res.status_code == 200:

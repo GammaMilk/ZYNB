@@ -5,10 +5,14 @@ import httpx
 from sqlalchemy import false
 from . import dbmgr, cfg
 from nonebot.log import logger
+from PIL import Image
+import io
 
 _cache_dir = cfg.get_local_img_cache_path()
 _pxv_proxy = cfg.get_pxv_proxy()
 _UA = cfg.get_UA()
+db_file_mgr = dbmgr.get_db_file_mgr()
+db_lolicon_mgr = dbmgr.get_db_lolicon_mgr()
 
 
 async def get_img_from_local(pid: int) -> bytes:
@@ -18,8 +22,7 @@ async def get_img_from_local(pid: int) -> bytes:
     Returns:
         bytes: 图片
     """
-    c = dbmgr.get_db_collection()
-    item = await c.find_one({"pid": pid})
+    item = await db_file_mgr.get_one_by_pid(pid)
     if item:
         item = dbmgr.DBModelPixiv.parse_obj(item)
         if item.local:
@@ -60,7 +63,7 @@ async def get_info_by_pid(
         url=res['urls']['original']
     )
     info.r18 = 'R-18' in info.tags
-    await dbmgr.sync_lolicon_db(info)
+    await db_lolicon_mgr.update_one(info, upsert=True)
     return info
 
 
@@ -87,6 +90,7 @@ async def get_img_by_pid(pid: int, client: Optional[httpx.AsyncClient] = None) -
     try:
         return await get_img_from_local(pid)
     except:
+        logger.info(f"图片在本地加载失败，正在联网加载：{pid}")
         pass
     # 第二步：如果不存在，则从pixiv获取
     use_arg_client = client is not None
@@ -106,7 +110,7 @@ async def get_img_by_pid(pid: int, client: Optional[httpx.AsyncClient] = None) -
             pid=pid, local=True, url=img_original_url, lpath=f"{_cache_dir}/{pid}.{img_suffix}")
         with open(item.lpath, "wb") as f:
             f.write(img)
-        await dbmgr.get_db_collection().insert_one(item.dict())
+        await db_file_mgr.update_one(item, upsert=True)
     if not use_arg_client:
         await client.__aexit__()
     return img
@@ -125,10 +129,11 @@ async def get_img_by_info(
     try:
         return await get_img_from_local(info.pid)
     except:
+        logger.info(f"图片本地加载失败，正在重新加载：{info.pid}")
         pass
     url = info.url.replace("i.pximg.net", _pxv_proxy)
     img_suffix = url.split(".")[-1]
-    logger.debug(f"加载图片：{url}")
+    logger.debug(f"下载图片：{url}")
     res = await client.get(url, headers={"User-Agent": _UA})
     img = res.content
     if img:
@@ -136,7 +141,7 @@ async def get_img_by_info(
             pid=info.pid, local=True, url=info.url, lpath=f"{_cache_dir}/{info.pid}.{img_suffix}")
         with open(item.lpath, "wb") as f:
             f.write(img)
-        await dbmgr.get_db_collection().insert_one(item.dict())
+        await db_file_mgr.update_one(item, upsert=True)
     return img
 
 
@@ -190,12 +195,20 @@ async def get_img_info_by_tags(
         ret = dbmgr.DBModelLolicon.parse_obj(r)
         # 第二步 保存数据到本地数据库
         logger.debug(f"同步数据库 {ret.pid}")
-        await dbmgr.sync_lolicon_db(ret)
+        await db_lolicon_mgr.update_one(ret, upsert=True)
     except:
         # Fall back to local mode
         logger.error(f"NETWORK ERROR, FALLBACK TO LOCAL MODE")
-        ret = await dbmgr.get_local_info_by_tag(tags)
+        ret = await dbmgr.get_local_info_by_tags(tags)
     return ret
+
+
+def compress_img(img: bytes):
+    img2 = Image.open(io.BytesIO(img))
+    fileio = io.BytesIO()
+    rgb_im = img2.convert('RGB')
+    rgb_im.save(fileio, format='JPEG', quality=90)
+    return fileio.getvalue()
 
 
 async def get_original_url_by_pid(pid: int) -> str:
