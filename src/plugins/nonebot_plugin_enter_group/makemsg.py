@@ -7,7 +7,7 @@ def makemsg(daomeidan: str, describe: str, img_src: str, linked_url: str = "") -
     msg.set("serviceID", "1")
     msg.set("templateID", "1")
     msg.set("action", "web")
-    msg.set("brief", f"{daomeidan}已经进群聊天")
+    msg.set("brief", f"{daomeidan}")
     msg.set("sourceMsgId", "0")
     msg.set("url", linked_url)
     msg.set("flag", "0")
@@ -22,7 +22,7 @@ def makemsg(daomeidan: str, describe: str, img_src: str, linked_url: str = "") -
     pic.set("w", "0")
     pic.set("h", "0")
     title = ET.SubElement(item, "title")
-    title.text = f"{daomeidan}已经进群聊天"
+    title.text = f"{daomeidan}"
     summary = ET.SubElement(item, "summary")
     summary.text = describe
     source = ET.SubElement(msg, "source")

@@ -270,7 +270,7 @@ async def _(bot: Bot, event: Event, text: Message = CommandArg()):
         addText(img, 44, str(toNextLevelPercent*100)+"%", 1100, 174)
         addText(img, 60, user["name"] if user["name"] else uid, 1080, 63)
         addText(img, 32, str(user["level"] if user["level"]
-                < 500 else 500), 780, 216, (0, 0, 0))
+                < 500 else user["level"]), 780, 216, (0, 0, 0))
         for rk in range(2):
             rname = ["rank", "排位"] if rk == 1 else ["arena", "竞技场"]
             rank = user[rname[0]]

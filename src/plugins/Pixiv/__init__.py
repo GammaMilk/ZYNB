@@ -58,7 +58,7 @@ async def _(
     strsmsg = args.extract_plain_text().split(" ")
     logger.debug(f"{type(args)}ARGS: {args}")
     if len(strsmsg) >= 1 and strsmsg[0]:
-        state['pid'] = strsmsg[0]
+        state['pid'] = strsmsg
     else:
         # random one
         img = await imgmgr.get_img_by_tags([], client)
@@ -73,17 +73,18 @@ async def _(
     # TODO 增加多个pid一同识别
     pid = state['pid']
     if isinstance(pid, Message):
-        pid = pid.extract_plain_text()
+        pid = pid.extract_plain_text().split(' ')
+    assert(isinstance(pid, list))
     logger.warning(f"{type(pid)}pid: {pid}")
-    isPid = True if re.match(r'^\d+$', pid) else False  # 判断是否为pid
+    isPid = True if re.match(r'^\d+$', pid[0]) else False  # 判断是否为pid
     img = None
     try:
         if isPid:
-            img = await imgmgr.get_img_by_pid(int(pid), client)
+            img = await imgmgr.get_img_by_pid(int(pid[0]), client)
         else:  # 此Pid是Tag
-            if pid.lower() in no_setu:
+            if pid[0].lower() in no_setu:
                 await pxv.finish(f"抱歉，{pid}暂时不支持搜索哦")
-            img = await imgmgr.get_img_by_tags([pid], client)
+            img = await imgmgr.get_img_by_tags(pid, client)
     except ValueError as e:
         await pxv.finish(str(e))
     if img:
