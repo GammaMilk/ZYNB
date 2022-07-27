@@ -53,6 +53,7 @@ async def get_info_by_pid(
     client: httpx.AsyncClient
 ) -> dbmgr.DBModelLolicon:
     """生成图片信息
+    !会同步lolicon数据库!
 
     Args:
         pid (int): 图片id
@@ -198,6 +199,7 @@ async def get_img_info_by_tags(
     client: httpx.AsyncClient
 ) -> dbmgr.DBModelLolicon:
     """根据标签获取图片id
+    !会同步lolicon数据库!
     Args:
         tags: 标签
     Returns:
@@ -205,11 +207,14 @@ async def get_img_info_by_tags(
     """
     # 第一步 在线模式获取数据
     logger.info(f"在线模式获取图片信息：{tags}")
-    url_search = r"https://api.lolicon.app/setu/v2"
-    method = "POST"
+    url_search = r"http://x6.gmk.icu/setu/v2"
+    method = "GET"
     data = {"tag": list(tags)}
     try:
-        r = await client.request(method=method, url=url_search, json=data, timeout=10)
+        # r = await client.request(method=method, url=url_search, json=data, timeout=10)
+        tags_query = "".join([f"tag={tag}&" for tag in tags])
+        req_url = f"{url_search}?{tags_query}"
+        r = await client.get(req_url)
         r = r.json()
         if not r['data']:
             raise ValueError("未找到相关图片")

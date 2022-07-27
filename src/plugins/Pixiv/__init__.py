@@ -40,10 +40,13 @@ class Config(BaseModel, extra=Extra.ignore):
 
 
 no_setu = Config.parse_obj(get_driver().config).no_setu
+pixiv_proxy = Config.parse_obj(get_driver().config).pixiv_proxy
+proxy_used = True
 
 
 async def gen_client_async():
-    async with httpx.AsyncClient() as client:
+    p = {'all://': None} if not proxy_used else None
+    async with httpx.AsyncClient(proxies=p, timeout=12) as client:
         yield client
 
 pxv = on_command("p", priority=5, block=True)
@@ -77,24 +80,27 @@ async def _(
     assert(isinstance(pid, list))
     logger.warning(f"{type(pid)}pid: {pid}")
     isPid = True if re.match(r'^\d+$', pid[0]) else False  # 判断是否为pid
-    img = []
+    imgs = []
     try:
-        if isPid:
+        if isPid:  # 这是数字pid
+            ts = []
             for p in pid:
                 isPid = True if re.match(r'^\d+$', p) else False
                 if isPid:
-                    timg = await imgmgr.get_img_by_pid(int(p), client)
-                if timg:
-                    img.append(timg)
-        else:  # 此Pid是Tag
+                    ts.append(imgmgr.get_img_by_pid(int(p), client))
+            for t in ts:
+                im = await t
+                if im:
+                    imgs.append(im)
+        else:  # 此Pid是Tags
             if pid[0].lower() in no_setu:
                 await pxv.finish(f"抱歉，{pid}暂时不支持搜索哦")
             pid = [x.strip("'").strip('"') for x in pid]
-            img += [await imgmgr.get_img_by_tags(pid, client)]
+            imgs += [await imgmgr.get_img_by_tags(pid, client)]
     except ValueError as e:
         await pxv.finish(str(e))
-    if img:
-        for soloimg in img:
+    if imgs:
+        for soloimg in imgs:
             if len(soloimg) > 5*1024*1024:  # 图片大于5Mb
                 logger.warning(f"图片大于5Mb，将会被压缩")
                 soloimg = imgmgr.compress_img(soloimg)
