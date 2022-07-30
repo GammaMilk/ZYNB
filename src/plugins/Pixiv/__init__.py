@@ -1,35 +1,36 @@
-from base64 import b64decode, b64encode
-import os
 import io
-import sys
+import json
+import os
 import re
+import sys
 import time
-from typing import Any, Iterable
 import typing
-import PIL
-from PIL import Image
-from fastapi import Depends
+from base64 import b64decode, b64encode
+from typing import Any, Iterable
+
+import httpx
 import nonebot
-from nonebot import get_driver, on_command, on_startswith
-from nonebot.typing import T_State
-from nonebot.plugin import PluginMetadata
-from nonebot.params import State, CommandArg, ArgStr
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, Event, GroupMessageEvent, PrivateMessageEvent, MessageSegment
 import nonebot.adapters.telegram as tg
 import nonebot.exception
-from nonebot.params import Depends
+import PIL
+from fastapi import Depends
+from nonebot import get_driver, on_command, on_startswith
+from nonebot.adapters.onebot.v11 import (Bot, Event, GroupMessageEvent,
+                                         Message, MessageEvent, MessageSegment,
+                                         PrivateMessageEvent)
 from nonebot.log import logger
-# from utils.http_utils import AsyncHttpx
-import json
-import httpx
-
+from nonebot.params import ArgStr, CommandArg, Depends, State
+from nonebot.plugin import PluginMetadata
+from nonebot.typing import T_State
+from PIL import Image
 from pydantic import BaseModel, Extra
+
 from . import imgmgr
 
 __plugin_meta__ = PluginMetadata(
     name='pixiv',
     description='获取简单的图片',
-    usage='''/p [pid|tag]''',
+    usage='''/p [pid|tag]\n/fav [pid] 设置收藏\n/pfav 获得收藏''',
     extra={'version': '3.1'}
 )
 
@@ -44,12 +45,19 @@ pixiv_proxy = Config.parse_obj(get_driver().config).pixiv_proxy
 proxy_used = True
 
 
-async def gen_client_async():
+async def gen_client_async() -> httpx.AsyncClient:
+    """生成httpx客户端
+
+    Yields:
+        httpx.AsyncClient: httpx客户端
+    """
     p = {'all://': None} if not proxy_used else None
     async with httpx.AsyncClient(proxies=p, timeout=12) as client:
         yield client
 
 pxv = on_command("p", priority=5, block=True)
+fav = on_command("fav", priority=5, block=True)
+pfav = on_command("pfav", priority=5, block=True)
 
 
 @pxv.handle()
@@ -83,10 +91,10 @@ async def _(
     imgs = []
     try:
         if isPid:  # 这是数字pid
-            ts = []
+            ts = [] #Tasks
             for p in pid:
                 isPid = True if re.match(r'^\d+$', p) else False
-                if isPid:
+                if isPid: #每项检验是否为数字
                     ts.append(imgmgr.get_img_by_pid(int(p), client))
             for t in ts:
                 im = await t
