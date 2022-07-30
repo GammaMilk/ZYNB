@@ -12,8 +12,8 @@ import io
 _cache_dir = cfg.get_local_img_cache_path()
 _pxv_proxy = cfg.get_pxv_proxy()
 _UA = cfg.get_UA()
-db_file_mgr = dbmgr.get_db_file_mgr()
-db_lolicon_mgr = dbmgr.get_db_lolicon_mgr()
+db_file_mgr = dbmgr.DBMgrBuilder.get_db_file()
+db_lolicon_mgr = dbmgr.DBMgrBuilder.get_db_lolicon()
 
 
 def print_func_name(func):
