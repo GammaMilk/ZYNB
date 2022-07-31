@@ -8,7 +8,7 @@ Before starting this bot, you'd rename "RENAME_THIS_FILE...." to correct name. S
 
 ### Install dependencies
 
-This project and plugins need some python dependencies. You must ensure your python version >= 3.7.9。Before starting this project, you'd install nonebot2 by following commands:
+This project and plugins need some python dependencies. You must ensure your python version >= 3.10。Before starting this project, you'd install nonebot2 by following commands:
 
 ```shell
 pip install nb-cli
