@@ -1,5 +1,4 @@
 import os
-import toml
 
 _PATH_LOCAL_IMG_CACHE = ""
 _PXV_PROXY = "zjlnb.gmk.icu"

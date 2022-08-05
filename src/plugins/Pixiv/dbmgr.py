@@ -1,32 +1,11 @@
+from cmath import inf
+from typing import TypeAlias
+from loguru import logger
 import nonebot
 from pydantic import BaseModel
 from motor import motor_asyncio
 
-
-class DBModelPixiv(BaseModel):
-    """
-    Pixiv图片缓存数据库模型类
-    """
-    pid: int
-    local: bool
-    url: str
-    lpath: str
-
-
-class DBModelLolicon(BaseModel):
-    """
-    Lolicon数据库模型类(r18保存之前*必须检验*)
-    """
-    pid: int
-    uid: int
-    title: str
-    author: str
-    r18: bool
-    width: int
-    height: int
-    tags: list[str]
-    url: str
-
+from .dbmodel import DBBaseModelPid, DBModelLolicon, DBModelPixiv, DBModelFav
 
 def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
     client = nonebot.require("nonebot_plugin_navicat")
@@ -38,6 +17,7 @@ def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
 client = get_right_db_client()
 db = client['db_pixiv']
 c = db['pixiv_data']
+c_info = db['lolicon_data']
 
 
 def get_db_database() -> motor_asyncio.AsyncIOMotorDatabase:
@@ -49,7 +29,7 @@ def get_db_database() -> motor_asyncio.AsyncIOMotorDatabase:
     return db
 
 
-def get_db_collection() -> motor_asyncio.AsyncIOMotorCollection:
+def get_db_file_collection() -> motor_asyncio.AsyncIOMotorCollection:
     """获取数据库Collection链接实例
 
     Returns:
@@ -58,8 +38,60 @@ def get_db_collection() -> motor_asyncio.AsyncIOMotorCollection:
     return c
 
 
-async def sync_lolicon_db(info: DBModelLolicon):
-    c = db['lolicon_data']
-    dbres = await c.find_one({"pid": info.pid})
-    if not dbres:
-        c.insert_one(info.dict())
+async def get_local_info_by_tags(tags: list[str]):
+    db_query = [{'$match':
+                 {"tags": {'$all': tags}},    # 条件
+                 }] if tags else []
+    db_query += [{'$sample': {'size': 1}}]
+    cur = c_info.aggregate(db_query)
+    res = await cur.to_list(1)
+    if res:
+        return DBModelLolicon.parse_obj(res[0])
+    raise ValueError("No match imgs")
+
+
+class DBPidMgr:
+    c: motor_asyncio.AsyncIOMotorCollection=None
+    ModelMode:TypeAlias = DBModelPixiv
+    def __init__(self, collection: motor_asyncio.AsyncIOMotorCollection) -> None:
+        self.c = collection
+    # CRUD
+    async def insert_one(self, info: ModelMode):
+        return await self.c.insert_one(info.dict())
+
+    async def get_one_by_pid(self, pid: int):
+        return await self.c.find_one({"pid": pid})
+
+    async def update_one(self, info: ModelMode, upsert: bool = False):
+        return await self.c.update_one({'pid': info.pid}, {'$set': info.dict()}, upsert=upsert)
+
+    async def delete_one_by_pid(self, pid: int):
+        return await self.c.delete_one({'pid': pid})
+
+class DBLoliconMgr(DBPidMgr):
+    ModelMode = DBModelLolicon
+    async def get_local_info_by_tags(self, tags: list[str]):
+        db_query = [{'$match':
+                    {"tags": {'$all': tags}},    # 条件
+                    }] if tags else []
+        db_query += [{'$sample': {'size': 1}}]
+        cur = self.c.aggregate(db_query)
+        res = await cur.to_list(1)
+        if res:
+            return DBModelLolicon.parse_obj(res[0])
+        raise ValueError("No match imgs")
+
+class DBFavMgr(DBPidMgr):
+    ModelMode = DBModelFav
+    pass
+
+class DBMgrBuilder():
+    @staticmethod
+    def get_db_file()->DBPidMgr:
+        return DBPidMgr(db['pixiv_data'])
+    @staticmethod
+    def get_db_lolicon() -> DBPidMgr:
+        return DBLoliconMgr(db['lolicon_data'])
+    @staticmethod
+    def get_db_fav() -> DBFavMgr:
+        return DBFavMgr(db['fav_data'])

@@ -33,12 +33,16 @@ __plugin_settings__ = {
 }
 
 
-_sign_handler = on_keyword("已经进群聊天", priority=5, block=True)
+_sign_handler = on_endswith("进群聊天", priority=5, block=True)
 
 
 @_sign_handler.handle()
-async def _sign_qq_handler(bot: Bot, event: MessageEvent, state: T_State):
-    strsmsg = event.message.extract_plain_text().replace("已经进群聊天", "").split(" ")
+async def _sign_qq_handler(
+    bot: Bot,
+    event: MessageEvent,
+    state: T_State,
+):
+    strsmsg = event.message.extract_plain_text().split(" ")
     defalut_describe = "注意言辞！"
     defalut_img = "https://c2cpicdw.qpic.cn/offpic_new/389213129//389213129-2081305543-37978D947CED64571088B53CBD88D634/0?term=3"
     if len(strsmsg) == 1:

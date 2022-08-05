@@ -1,3 +1,4 @@
+import io
 import json
 # from utils.http_utils import AsyncHttpx
 import os
@@ -10,7 +11,7 @@ import nonebot
 import nonebot.adapters.telegram as tg
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import (Bot, Event, GroupMessageEvent,
-                                         Message, MessageEvent,
+                                         Message, MessageEvent,MessageSegment,
                                          PrivateMessageEvent)
 from nonebot.log import logger
 from nonebot.params import ArgStr, CommandArg, State
@@ -109,9 +110,6 @@ async def amap_handler(bot: Bot, event: MessageEvent, state: T_State):
 @ areplicator.handle()
 async def _(bot: Bot, event: MessageEvent, state: T_State):
     url = f"https://api.mozambiquehe.re/crafting?auth={Tool_Token}"
-    # resp = requests.get(url)
-    # resp = resp.text
-    # retdata = json.loads(resp)
     # 使用httpx异步请求
     async with httpx.AsyncClient() as client:
         resp = await client.get(url)
@@ -214,10 +212,9 @@ async def _(event: Event, text: Message = CommandArg()):
             msg = f"绑定成功！\nEA id：{EA_ID}"
         await abind.send(Message(msg))
 
+
 # 查询玩家信息
-
-
-@ ainquire.handle()
+@ainquire.handle()
 async def _(bot: Bot, event: Event, text: Message = CommandArg()):
     args = []
     uid = ""
@@ -227,14 +224,7 @@ async def _(bot: Bot, event: Event, text: Message = CommandArg()):
     response = None
 
     if len(args) >= 1:
-        # response = requests.get(f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={args[0]}&platform=PC")
-        # 此处改用httpx异步请求
-        async with httpx.AsyncClient(proxies={"all://": None}) as client:
-            response = await client.get(f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={args[0]}&platform=PC")
-        uid = args[0]
-        if response.status_code != 200:
-            await ainquire.send('EA_ID疑似有误!')
-            return
+        ea_account = args[0]
     else:
         QQ = event.get_user_id()
         QQ_EA = loadEAIDJson()
@@ -242,99 +232,98 @@ async def _(bot: Bot, event: Event, text: Message = CommandArg()):
             await ainquire.send(f'{QQ}未绑定EA账号!')
             return
         logger.info(QQ_EA[QQ])
-        # response = requests.get(
-        #     f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={QQ_EA[QQ]}&platform=PC")
-        async with httpx.AsyncClient(
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'},
-            proxies={"all://": None}
-        ) as client:
-            response = await client.get(
-                f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={QQ_EA[QQ]}&platform=PC",
-                timeout=10)
-        if response.status_code != 200:
-            await ainquire.send('绑定的EA id疑似有误，要不...再试一次?')
-            return
-        uid = QQ_EA[QQ]
-    response = json.loads(response.text)
+        ea_account = QQ_EA[QQ]
+    assert(isinstance(ea_account, str))
+    async with httpx.AsyncClient(
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'}) as client:
+        response = await client.get(
+            f"https://api.mozambiquehe.re/bridge?auth={Tool_Token}&player={ea_account}&platform=PC",
+            timeout=10)
+    if response.status_code != 200:
+        await ainquire.send('绑定的EA id疑似有误，要不...再试一次?')
+        return
+    uid = ea_account
+    response = response.json()
+    try:
+        img = get_account_info_img(ea_account,response)
+        fio = io.BytesIO()
+        img.save(fio, format="PNG")
+        msg = MessageSegment.image(fio.getvalue())
+        await ainquire.send(msg)
+    except Exception as e:
+        await ainquire.send("未查到或出现错误")
 
+def get_account_info_img(ea_account:str, response:dict)->Image.Image:
     rankPimg = ""
     arenaPimg = ""
     img = Image.open(f"{Template_Path}/info.png")
 
-    try:
-        user = response["global"]
-        toNextLevelPercent = user["toNextLevelPercent"] / 100
-        # progressBar(img, (255, 255, 255), (130, 170, 0),
-        #             1100, 185, 300, 20, toNextLevelPercent)
-        addText(img, 44, str(toNextLevelPercent*100)+"%", 1100, 174)
-        addText(img, 60, user["name"] if user["name"] else uid, 1080, 63)
-        addText(img, 32, str(user["level"] if user["level"]
-                < 500 else 500), 780, 216, (0, 0, 0))
-        for rk in range(2):
-            rname = ["rank", "排位"] if rk == 1 else ["arena", "竞技场"]
-            rank = user[rname[0]]
-            rankName = rank["rankName"]
-            rankDiv = rank["rankDiv"]
-            rankImg = rank["rankImg"]
+    user = response["global"]
+    toNextLevelPercent = user["toNextLevelPercent"] / 100
+    # progressBar(img, (255, 255, 255), (130, 170, 0),
+    #             1100, 185, 300, 20, toNextLevelPercent)
+    addText(img, 44, str(toNextLevelPercent*100)+"%", 1100, 174)
+    addText(img, 60, user["name"] if user["name"] else ea_account, 1080, 63)
+    addText(img, 32, str(user["level"] if user["level"]
+            < 500 else user["level"]), 780, 216, (0, 0, 0))
+    for rk in range(2):
+        rname = ["rank", "排位"] if rk == 1 else ["arena", "竞技场"]
+        rank = user[rname[0]]
+        rankName = rank["rankName"]
+        rankDiv = rank["rankDiv"]
+        rankImg = rank["rankImg"]
 
-            rimgPath = f"{Rank_Path}/{rankName}{rankDiv}.png"
-            isHasImg(rimgPath, rankImg)
-            rimgdraw = Image.open(rimgPath).convert("RGBA")
-            rimgdraw = rimgdraw.resize((250, 250), Image.ANTIALIAS)
-            rimgdraw.save(rimgPath)
+        rimgPath = f"{Rank_Path}/{rankName}{rankDiv}.png"
+        isHasImg(rimgPath, rankImg)
+        rimgdraw = Image.open(rimgPath).convert("RGBA")
+        rimgdraw = rimgdraw.resize((250, 250), Image.ANTIALIAS)
+        rimgdraw.save(rimgPath)
 
-            if rk == 1:
-                rankPimg = rimgPath
-            else:
-                arenaPimg = rimgPath
-            ix, iy = (765, 600) if rk == 1 else (1200, 600)
-            rankScore = rank["rankScore"]
-            ladderPosPlatform = rank["ladderPosPlatform"]
+        if rk == 1:
+            rankPimg = rimgPath
+        else:
+            arenaPimg = rimgPath
+        ix, iy = (765, 600) if rk == 1 else (1200, 600)
+        rankScore = rank["rankScore"]
+        ladderPosPlatform = rank["ladderPosPlatform"]
 
-            addText(img, 40, f"{rname[1]}：{rankScore}", ix, iy)
-            addText(
-                img, 40, f"猎杀排名：{str(ladderPosPlatform) if ladderPosPlatform > 0 else '无'}", ix, iy + 50)
-
-        realtime = response["realtime"]
-        addText(img, 40, "当前状态：", 680, 900)
-        addText(img, 40, "在线" if realtime["isOnline"] else "离线", 900, 900)
-        addText(img, 40, "正在游戏" if realtime["isInGame"] else "未在游戏", 1070, 900)
+        addText(img, 40, f"{rname[1]}：{rankScore}", ix, iy)
         addText(
-            img, 40, "小队已满" if realtime["partyFull"] else "小队未满", 1300, 900)
+            img, 40, f"猎杀排名：{str(ladderPosPlatform) if ladderPosPlatform > 0 else '无'}", ix, iy + 50)
 
-        legends = response["legends"]["selected"]
-        LegendName = legends["LegendName"]
-        icon = legends["ImgAssets"]["icon"]
-        iconPath = f"{Legend_Path}/{LegendName}.png"
-        if not isHasImg(iconPath, icon):
-            nopic = Image.open(f"{Template_Path}/nopic.png")
-            addText(nopic, 50, Legend_Dict[LegendName], 230, 150, (0, 0, 0))
-            iconPath = f"{Temp_Path}/{LegendName}_nopic.png"
-            nopic.save(iconPath)
+    realtime = response["realtime"]
+    addText(img, 40, "当前状态：", 680, 900)
+    addText(img, 40, "在线" if realtime["isOnline"] else "离线", 900, 900)
+    addText(img, 40, "正在游戏" if realtime["isInGame"] else "未在游戏", 1070, 900)
+    addText(
+        img, 40, "小队已满" if realtime["partyFull"] else "小队未满", 1300, 900)
 
-        addText(img, 60, Legend_Dict[LegendName]
-                if LegendName in Legend_Dict else LegendName, 170, 33)
-        lengData = legends["data"]
-        for i, dat in enumerate(lengData):
-            y = 120 + (i * 75)
-            addText(
-                img, 30, f"{isHasKey(dat['name'],Tracker)[1] if isHasKey(dat['name'],Tracker)[0] else dat['name']}：", 100, y)
-            addText(img, 30, str(dat["value"]), 500, y)
+    legends = response["legends"]["selected"]
+    LegendName = legends["LegendName"]
+    icon = legends["ImgAssets"]["icon"]
+    iconPath = f"{Legend_Path}/{LegendName}.png"
+    if not isHasImg(iconPath, icon):
+        nopic = Image.open(f"{Template_Path}/nopic.png")
+        addText(nopic, 50, Legend_Dict[LegendName], 230, 150, (0, 0, 0))
+        iconPath = f"{Temp_Path}/{LegendName}_nopic.png"
+        nopic.save(iconPath)
 
-        icoPimgh = Image.open(iconPath).convert("RGBA")
-        rankPimgh = Image.open(rankPimg).convert("RGBA")
-        arenaPimgh = Image.open(arenaPimg).convert("RGBA")
+    addText(img, 60, Legend_Dict[LegendName]
+            if LegendName in Legend_Dict else LegendName, 170, 33)
+    lengData = legends["data"]
+    for i, dat in enumerate(lengData):
+        y = 120 + (i * 75)
+        addText(
+            img, 30, f"{isHasKey(dat['name'],Tracker)[1] if isHasKey(dat['name'],Tracker)[0] else dat['name']}：", 100, y)
+        addText(img, 30, str(dat["value"]), 500, y)
 
-        img.paste(rankPimgh, (760, 320), mask=rankPimgh)
-        img.paste(arenaPimgh, (1200, 320), mask=arenaPimgh)
-        img.paste(icoPimgh, (0, 270), mask=icoPimgh)
-        img.save(f"{Temp_Path}/{uid}_info.png")
-        image_file = f"file:///{Temp_Path}/{uid}_info.png"
-        msg = f"[CQ:image,file={image_file}]"
-        # await bot.send_group_msg(group_id=event.group_id, message=msg)
-        await ainquire.send(Message(msg))
-    except Exception as e:
-        logger.info(e)
-        # await bot.send_group_msg(group_id=event.group_id, message="未查到或出现错误")
-        await ainquire.send("未查到或出现错误")
+    icoPimgh = Image.open(iconPath).convert("RGBA")
+    rankPimgh = Image.open(rankPimg).convert("RGBA")
+    arenaPimgh = Image.open(arenaPimg).convert("RGBA")
+
+    img.paste(rankPimgh, (760, 320), mask=rankPimgh)
+    img.paste(arenaPimgh, (1200, 320), mask=arenaPimgh)
+    img.paste(icoPimgh, (0, 270), mask=icoPimgh)
+
+    return img
