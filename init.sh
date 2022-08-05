@@ -1,0 +1,1 @@
+mv RENAME_THIS_FILE_TO_.env.dev .env.dev
