@@ -1,5 +1,7 @@
 # ZYNB!
 
+[![OSCS Status](https://www.oscs1024.com/platform/badge/GammaMilk/ZYNB.svg?size=small)](https://www.oscs1024.com/project/GammaMilk/ZYNB?ref=badge_small)
+
 [English Version](./docs/README.ENG.md)
 
 这是一个厨力项目。~~单纯是觉得隔壁的小真寻真是太可爱了QwQ！~~
@@ -7,6 +9,7 @@
 受到一些同学的启发，感谢这个项目 [https://github.com/HibiKier/zhenxun_bot](https://github.com/HibiKier/zhenxun_bot) 给了我极大的动力和勇气去写另一个机器人。虽然不太完善罢。但是也采用了一些一个苦逼大学生还没有学到的寄术。作者（我就一个人）也只能照葫芦画瓢罢（悲）。
 
 ## 安装
+
 
 - ### 确保环境中有poetry。如果没有，按照以下的命令安装。
 
@@ -72,6 +75,7 @@ curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poet
 - nonebot v2 [GitHub/nonebot/nonebot2](https://github.com/nonebot/nonebot2)
 - ApexTool 一个apex英雄的查询工具[GitHub/AreCie/Apex_Tool](https://github.com/AreCie/Apex_Tool)
 - zhenxun_bot 一个可爱的机器人，本工程灵感源泉 [GitHub/HibiKier/zhenxun_bot](https://github.com/HibiKier/zhenxun_bot)
+
 
 ## 其他
 - [ ] 正考虑迁移到PostgreSQL
