@@ -148,6 +148,12 @@ temp/*
 ImgCache/
 tmp.*
 
+# Temp Assets
+src/plugins/apextool/Assets/Legend/*
+src/plugins/apextool/Assets/Make/*
+src/plugins/apextool/Assets/Map/*
+src/plugins/apextool/Assets/Rank/*
+
 #cookie
 *.cookie
 
