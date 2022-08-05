@@ -1,4 +1,12 @@
 [[package]]
+name = "aiofiles"
+version = "0.8.0"
+description = "File support for asyncio."
+category = "main"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[[package]]
 name = "anyio"
 version = "3.6.1"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
@@ -355,6 +363,18 @@ python-versions = ">=3.7.3,<4.0.0"
 [package.dependencies]
 msgpack = ">=1.0.3,<2.0.0"
 nonebot2 = ">=2.0.0-beta.3,<3.0.0"
+
+[[package]]
+name = "nonebot-adapter-telegram"
+version = "0.1.0b2"
+description = "Telegram Adapter for NoneBot2"
+category = "main"
+optional = false
+python-versions = ">=3.7.3,<4.0.0"
+
+[package.dependencies]
+aiofiles = ">=0.8.0,<0.9.0"
+nonebot2 = ">=2.0.0b1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-navicat"
@@ -762,9 +782,13 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.3"
-content-hash = "9f269a28b9c04fa74039963c6da8c55c7be73b688af201f29749b39e03e5429b"
+content-hash = "4446231e087c083efcec315ce8ebb11dba88647dbeb88699aa3b200cd87d1940"
 
 [metadata.files]
+aiofiles = [
+    {file = "aiofiles-0.8.0-py3-none-any.whl", hash = "sha256:7a973fc22b29e9962d0897805ace5856e6a566ab1f0c8e5c91ff6c866519c937"},
+    {file = "aiofiles-0.8.0.tar.gz", hash = "sha256:8334f23235248a3b2e83b2c3a78a22674f39969b96397126cc93664d9a901e59"},
+]
 anyio = [
     {file = "anyio-3.6.1-py3-none-any.whl", hash = "sha256:cb29b9c70620506a9a8f87a309591713446953302d7d995344d0d7c6c0c9a7be"},
     {file = "anyio-3.6.1.tar.gz", hash = "sha256:413adf95f93886e442aea925f3ee43baa5a765a64a0f52c6081894f9992fdd0b"},
@@ -1102,6 +1126,10 @@ nb-cli = [
 nonebot-adapter-onebot = [
     {file = "nonebot-adapter-onebot-2.1.1.tar.gz", hash = "sha256:d00036883dd8b8685f0eea68b7ada9c3b1ba9de8b39f5c33e81d36a444afe02a"},
     {file = "nonebot_adapter_onebot-2.1.1-py3-none-any.whl", hash = "sha256:1a825b21fc7315c11d335276a932811352ac70e7031e86b5595121185c951c77"},
+]
+nonebot-adapter-telegram = [
+    {file = "nonebot-adapter-telegram-0.1.0b2.tar.gz", hash = "sha256:9d28d23d8ca310a53a49e000544bf15b918692653ce3de9647149d155f2d66fb"},
+    {file = "nonebot_adapter_telegram-0.1.0b2-py3-none-any.whl", hash = "sha256:d94a883a06bba84ad1487ca76faaa6bacefab49b97242d1b82a3fd37be15692e"},
 ]
 nonebot-plugin-navicat = [
     {file = "nonebot-plugin-navicat-0.2.3.tar.gz", hash = "sha256:051a15915e02ff9c051f2dd716178d00969900a680d09a96c5c2f8656a488991"},
