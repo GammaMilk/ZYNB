@@ -5,6 +5,7 @@ from typing import Iterable, Optional
 import httpx
 from sqlalchemy import false
 from . import dbmgr, cfg
+from .imgmodel import PxImage
 from nonebot.log import logger
 from PIL import Image
 import io
@@ -26,12 +27,12 @@ def print_func_name(func):
 
 
 @print_func_name
-async def get_img_from_local(pid: int) -> bytes:
+async def get_img_from_local(pid: int) -> PxImage:
     """根据pid获取本地图片本体
     Args:
         pid: 图片id
     Returns:
-        bytes: 图片
+        PxImage: 图片
     """
     item = await db_file_mgr.get_one_by_pid(pid)
     logger.info(f"图片正从本地加载：{item}")
@@ -40,7 +41,7 @@ async def get_img_from_local(pid: int) -> bytes:
         if item.local:
             logger.info(f"从本地获取图片：{item.lpath}")
             with open(item.lpath, "rb") as f:
-                return f.read()
+                return PxImage(img=f.read(),pid=pid,url=item.url)
         else:
             raise ValueError("该pid对应图片不在本地")
     else:
@@ -98,12 +99,15 @@ def get_proxyurl_by_url(url: str) -> str:
 
 
 @print_func_name
-async def get_img_by_pid(pid: int, client: Optional[httpx.AsyncClient] = None) -> bytes:
+async def get_img_by_pid(
+    pid: int, 
+    client: Optional[httpx.AsyncClient] = None
+    ) -> PxImage:
     """根据pid获取图片本体
     Args:
         pid: 图片id
     Returns:
-        bytes: 图片
+        PxImage: 图片
     """
     pid = int(pid)
     # 第一步：检查是否存在于缓存中
@@ -124,14 +128,7 @@ async def get_img_by_pid(pid: int, client: Optional[httpx.AsyncClient] = None) -
     img_suffix = img_original_url.split(".")[-1]
     logger.debug(f"通过info加载图片：{img_info.pid}{img_info.title}")
     img = await get_img_by_info(img_info, client)
-    # 第三步：如果获取成功，则缓存到本地
-    # if img:
-    #     logger.debug(f"图片下载成功，正在缓存：{pid}")
-    #     item = dbmgr.DBModelPixiv(
-    #         pid=pid, local=True, url=img_original_url, lpath=f"{_cache_dir}/{pid}.{img_suffix}")
-    #     with open(item.lpath, "wb") as f:
-    #         f.write(img)
-    #     await db_file_mgr.update_one(item, upsert=True)
+    # TODO img类型检验
     if not use_arg_client:
         await client.__aexit__()
     return img
@@ -141,12 +138,12 @@ async def get_img_by_pid(pid: int, client: Optional[httpx.AsyncClient] = None) -
 async def get_img_by_info(
     info: dbmgr.DBModelLolicon,
     client: httpx.AsyncClient
-) -> bytes:
+) -> PxImage:
     """根据info获取图片本体
     Args:
         info: 图片信息
     Returns:
-        bytes: 图片
+        PxImage: 图片
     """
     try:
         img = await get_img_from_local(info.pid)
@@ -168,33 +165,34 @@ async def get_img_by_info(
             f.write(img)
         logger.debug(f"更新数据库：{info.pid}")
         await db_file_mgr.update_one(item, upsert=True)
+    img = PxImage(img=img, pid=info.pid, url=info.url)
     return img
 
 
 async def get_img_by_tags(
     tags: Iterable[str],
     client: Optional[httpx.AsyncClient] = None
-) -> bytes:
+) -> PxImage:
     """根据标签获取图片本体
     Args:
         tags: 标签
         client: (可选)httpx异步客户端
     Returns:
-        bytes: 图片
+        PxImage: 图片
     """
     use_arg_client = client is not None
     if not use_arg_client:
         client = httpx.AsyncClient(
             headers={"User-Agent": _UA},
             proxies={"all://": None})
-    info = await get_img_info_by_tags(tags, client=client)
+    info = await get_info_by_tags(tags, client=client)
     img = await get_img_by_info(info, client=client)
     if not use_arg_client:
         await client.__aexit__()
     return img
 
 
-async def get_img_info_by_tags(
+async def get_info_by_tags(
     tags: Iterable[str],
     client: httpx.AsyncClient
 ) -> dbmgr.DBModelLolicon:

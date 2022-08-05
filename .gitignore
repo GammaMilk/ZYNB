@@ -150,3 +150,7 @@ tmp.*
 
 #cookie
 *.cookie
+
+#test
+test/
+test/*

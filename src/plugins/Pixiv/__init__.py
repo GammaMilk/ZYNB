@@ -25,6 +25,8 @@ from nonebot.typing import T_State
 from PIL import Image
 from pydantic import BaseModel, Extra
 
+from .imgmodel import PxImage
+
 from . import imgmgr
 
 __plugin_meta__ = PluginMetadata(
@@ -59,6 +61,15 @@ pxv = on_command("p", priority=5, block=True)
 fav = on_command("fav", priority=5, block=True)
 pfav = on_command("pfav", priority=5, block=True)
 
+def formatted_img(img:PxImage):
+    if len(img.img) > 5*1024*1024:
+        logger.warning(f"图片大于5Mb，将会被压缩")
+        img.img = imgmgr.compress_img(img.img)
+    img.img += b'\x00'
+    rawimg = MessageSegment.image(img.img)
+    pid = MessageSegment.text(f"PID: {img.pid}\n")
+    url = MessageSegment.text(f"URL: {img.url}\n")
+    return pid+url+rawimg
 
 @pxv.handle()
 async def _(
@@ -73,7 +84,7 @@ async def _(
     else:
         # random one
         img = await imgmgr.get_img_by_tags([], client)
-        await pxv.finish(MessageSegment.image(img))
+        await pxv.finish(formatted_img(img))
 
 
 @pxv.got('pid')
@@ -81,14 +92,13 @@ async def _(
         state: T_State,
         client: httpx.AsyncClient = Depends(gen_client_async)
 ):
-    # TODO 增加多个pid一同识别
     pid = state['pid']
     if isinstance(pid, Message):
         pid = pid.extract_plain_text().split(' ')
     assert(isinstance(pid, list))
     logger.warning(f"{type(pid)}pid: {pid}")
-    isPid = True if re.match(r'^\d+$', pid[0]) else False  # 判断是否为pid
-    imgs = []
+    isPid = not not re.match(r'^\d+$', pid[0])  # 判断是否为pid
+    imgs:list[PxImage] = []
     try:
         if isPid:  # 这是数字pid
             ts = [] #Tasks
@@ -99,7 +109,7 @@ async def _(
             for t in ts:
                 im = await t
                 if im:
-                    imgs.append(im)
+                    imgs += [im]
         else:  # 此Pid是Tags
             if pid[0].lower() in no_setu:
                 await pxv.finish(f"抱歉，{pid}暂时不支持搜索哦")
@@ -109,8 +119,4 @@ async def _(
         await pxv.finish(str(e))
     if imgs:
         for soloimg in imgs:
-            if len(soloimg) > 5*1024*1024:  # 图片大于5Mb
-                logger.warning(f"图片大于5Mb，将会被压缩")
-                soloimg = imgmgr.compress_img(soloimg)
-            soloimg += b'\x00'
-            await pxv.send(MessageSegment.image(soloimg))
+            await pxv.send(formatted_img(soloimg))
