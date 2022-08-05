@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class DBBaseModelPid(BaseModel):
     pid: int
+    url: str
 
 
 class DBModelPixiv(DBBaseModelPid):
