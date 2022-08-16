@@ -1,5 +1,5 @@
-from cmath import log
 import re
+import pathlib
 from typing import Iterable, Optional
 import httpx
 from sqlalchemy import false
@@ -10,9 +10,9 @@ from PIL import Image
 import io
 
 _cache_dir = cfg.get_local_img_cache_path()
+_cache_dir = pathlib.Path(_cache_dir)
 _pxv_proxy = cfg.get_pxv_proxy()
 _UA = cfg.get_UA()
-db_file_mgr = dbmgr.DBMgrBuilder.get_db_file()
 db_lolicon_mgr = dbmgr.DBMgrBuilder.get_db_lolicon()
 
 
@@ -33,16 +33,14 @@ async def get_img_from_local(pid: int) -> PxImage:
     Returns:
         PxImage: 图片
     """
-    item = await db_file_mgr.get_one_by_pid(pid)
+    item = await db_lolicon_mgr.get_one_by_pid(pid)
     logger.info(f"图片正从本地加载：{item}")
     if item:
-        item = dbmgr.DBModelPixiv.parse_obj(item)
-        if item.local:
-            logger.info(f"从本地获取图片：{item.lpath}")
-            with open(item.lpath, "rb") as f:
-                return PxImage(img=f.read(),pid=pid,url=item.url)
-        else:
-            raise ValueError("该pid对应图片不在本地")
+        item = dbmgr.DBModelLolicon.parse_obj(item)
+        lpath = _cache_dir / item.url.split("/")[-1]
+        logger.info(f"从本地获取图片：{lpath}")
+        with open(lpath, "rb") as f:
+            return PxImage(img=f.read(),pid=pid,url=item.url)
     else:
         raise ValueError(f"数据库中没有：{pid}")
 
@@ -114,18 +112,18 @@ async def get_img_by_pid(
         img = await get_img_from_local(pid)
         return img
     except Exception as e:
-        logger.info(f"{e}图片在本地加载失败，正在联网加载：{pid}")
+        logger.info(f"{e}Not at local, loading from Internet: {pid}")
         pass
     # 第二步：如果不存在，则从pixiv获取
     use_arg_client = client is not None
     if not use_arg_client:
         client = httpx.AsyncClient(
             headers={"User-Agent": _UA}, proxies={"all://": None})
-    logger.debug(f"下载图片信息：{pid}")
+    logger.debug(f"Fetching Img info: {pid}")
     img_info = await get_info_by_pid(pid, client)
     img_original_url = img_info.url
     img_suffix = img_original_url.split(".")[-1]
-    logger.debug(f"通过info加载图片：{img_info.pid}{img_info.title}")
+    logger.debug(f"Downloading img from info{img_info.pid}{img_info.title}")
     img = await get_img_by_info(img_info, client)
     # TODO img类型检验
     if not use_arg_client:
@@ -146,24 +144,22 @@ async def get_img_by_info(
     """
     try:
         img = await get_img_from_local(info.pid)
-        logger.debug(f"图片已经从本地加载：{info.pid}")
+        logger.debug(f"Img loaded from local: {info.pid}")
         return img
     except:
-        logger.info(f"图片本地加载失败，正在重新加载：{info.pid}")
+        logger.info(f"Local loading failed. {info.pid}")
         pass
     url = info.url.replace("i.pximg.net", _pxv_proxy)
     img_suffix = url.split(".")[-1]
-    logger.debug(f"从互联网下载图片：{url}")
+    logger.debug(f"Downloading: {url}")
     res = await client.get(url, headers={"User-Agent": _UA})
     img = res.content
     if img:
-        item = dbmgr.DBModelPixiv(
-            pid=info.pid, local=True, url=info.url, lpath=f"{_cache_dir}/{info.pid}.{img_suffix}")
-        with open(item.lpath, "wb") as f:
-            logger.debug(f"图片下载成功，正在保：{info.pid}")
+        lpath = _cache_dir / url.split("/")[-1]
+        with open(lpath, "wb") as f:
+            logger.debug(f"Saving file: {info.pid}")
             f.write(img)
-        logger.debug(f"更新数据库：{info.pid}")
-        await db_file_mgr.update_one(item, upsert=True)
+        logger.debug(f"Updating database: {info.pid}")
     img = PxImage(img=img, pid=info.pid, url=info.url)
     return img
 

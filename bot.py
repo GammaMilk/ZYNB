@@ -6,7 +6,9 @@ from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.adapters.telegram import Adapter as TELEGRAMAdapter
 
 # Custom your logger
-#
+import sys
+sys.stdout.reconfigure(encoding='utf-8', errors='backslashreplace')
+
 # from nonebot.log import logger, default_format
 # logger.add("error.log",
 #            rotation="00:00",
