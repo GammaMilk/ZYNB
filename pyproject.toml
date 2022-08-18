@@ -6,12 +6,11 @@ authors = ["MerkyGao"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9.6"
+python = "^3.9"
 nonebot2 = "^2.0.0-beta.1"
 httpx = "^0.23.0"
 Pillow = "^9.2.0"
 nonebot-adapter-onebot = "^2.1.1"
-nonebot-plugin-navicat = {git = "https://github.com/synodriver/nonebot_plugin_navicat.git", rev = "main", extras = ["mongodb"]}
 nonebot-adapter-telegram = "^0.1.0-beta.2"
 nonebot-plugin-apscheduler = "^0.1.4"
 gino = "^1.0.1"
@@ -24,7 +23,7 @@ init = "./init.sh"
 
 [tool.nonebot]
 plugins = ["nonebot_plugin_apscheduler"]
-plugin_dirs = ["src/plugins"]
+plugin_dirs = ["src/services","src/plugins"]
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

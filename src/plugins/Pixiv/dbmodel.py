@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-
 class BasePid(BaseModel):
     pid: int
     url: str

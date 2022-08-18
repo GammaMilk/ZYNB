@@ -12,7 +12,6 @@ import httpx
 import nonebot
 import nonebot.adapters.telegram as tg
 import nonebot.exception
-import PIL
 from fastapi import Depends
 from nonebot import get_driver, on_command, on_startswith
 from nonebot.adapters.onebot.v11 import (Bot, Event, GroupMessageEvent,
@@ -25,14 +24,13 @@ from nonebot.typing import T_State
 from PIL import Image
 from pydantic import BaseModel, Extra
 
-from .imgmodel import PxImage
-
 from . import imgmgr
+from .imgmodel import PxImage
 
 __plugin_meta__ = PluginMetadata(
     name='pixiv',
     description='获取简单的图片',
-    usage='''/p [pid|tag]\n/fav [pid] 设置收藏\n/pfav 获得收藏''',
+    usage='''/p [pid|tag]\n/fav [pid] 设置收藏\n/pfav 获得收藏\npdel [pid]''',
     extra={'version': '3.1'}
 )
 
@@ -60,6 +58,7 @@ async def gen_client_async() -> httpx.AsyncClient:
 pxv = on_command("p", priority=5, block=True)
 fav = on_command("fav", priority=5, block=True)
 pfav = on_command("pfav", priority=5, block=True)
+pdel = on_command("pdel", priority=5, block=True)
 
 def formatted_img(img:PxImage):
     if len(img.img) > 5*1024*1024:
@@ -70,6 +69,22 @@ def formatted_img(img:PxImage):
     pid = MessageSegment.text(f"PID: {img.pid}\n")
     url = MessageSegment.text(f"URL: {img.url}\n")
     return pid+url+rawimg
+
+@pdel.handle()
+async def _(
+    state: T_State,
+    args: Message = CommandArg()
+):
+    strsmsg = args.extract_plain_text().split(" ")
+    try:
+        pids = list(map(int,strsmsg))
+    except:
+        await pdel.finish("Format error.\nplz use <SPACE> to split integer pids.")
+    logger.debug(f"{type(args)}DEL: {pids}")
+    ret = []
+    for pid in pids:
+        ret.append(await imgmgr.del_img(pid))
+    await pdel.finish(",".join(ret))
 
 @pxv.handle()
 async def _(

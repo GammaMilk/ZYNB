@@ -1,16 +1,17 @@
-from cmath import inf
 import datetime
-from turtle import up
-from typing import TypeAlias
-from loguru import logger
+
 import nonebot
-from pydantic import BaseModel
+from loguru import logger
 from motor import motor_asyncio
+from pydantic import BaseModel
 
-from .dbmodel import BasePid, BaseLolicon, BasePixiv, BaseFav
 from .daomodel import LoliconDAOModel
+from .dbmodel import BaseFav, BaseLolicon, BasePid, BasePixiv
 
-def __sa_entry_to_dict(entry):
+
+def sa_entry_to_dict(entry):
+    if not entry:
+        return None
     entry_dict = {}
     columns = entry.__table__.columns
     for column in columns:
@@ -22,15 +23,14 @@ def __sa_entry_to_dict(entry):
     return entry_dict
 
 class DBLoliconMgr:
-    ModelMode:TypeAlias = BaseLolicon
     # CRUD
-    async def insert_one(self, info: ModelMode):
+    async def insert_one(self, info: BaseLolicon):
         return await LoliconDAOModel.insert_one(info)
 
     async def get_one_by_pid(self, pid: int):
-        return __sa_entry_to_dict(await LoliconDAOModel.get_one_by_pid(int(pid)))
+        return sa_entry_to_dict(await LoliconDAOModel.get_one_by_pid(int(pid)))
 
-    async def update_one(self, info: ModelMode, upsert: bool = False):
+    async def update_one(self, info: BaseLolicon, upsert: bool = False):
         return await LoliconDAOModel.update_one(info,upsert=upsert)
 
     async def delete_one_by_pid(self, pid: int):
@@ -39,7 +39,7 @@ class DBLoliconMgr:
     async def get_local_info_by_tags(self, tags: list[str]):
         res = await LoliconDAOModel.query_tags(tags)
         if res:
-            return __sa_entry_to_dict(res[0])
+            return sa_entry_to_dict(res[0])
 
 
 # TODO: 搁置

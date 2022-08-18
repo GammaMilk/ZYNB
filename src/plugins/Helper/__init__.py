@@ -1,12 +1,9 @@
 import json
-from lib2to3.pgen2 import driver
 from pydoc import cli
-from xml.dom.minidom import TypeInfo
 
 import httpx
 import nonebot
 import nonebot.adapters.telegram as tg
-from motor import motor_asyncio
 from nonebot import on_command, on_startswith
 from nonebot.adapters.onebot.v11 import (Bot, Event, GroupMessageEvent,
                                          Message, MessageEvent,
@@ -15,18 +12,6 @@ from nonebot.log import logger
 from nonebot.params import ArgStr, CommandArg, State
 from nonebot.typing import T_State
 from pydantic import BaseModel
-
-
-def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
-    client = nonebot.require("nonebot_plugin_navicat")
-    client = client.mongodb_client
-    assert(isinstance(client, motor_asyncio.AsyncIOMotorClient))
-    return client
-
-
-client = get_right_db_client()
-db = client['db_pixiv']
-c = db['pixiv_data']
 
 
 class DBModelPixiv(BaseModel):

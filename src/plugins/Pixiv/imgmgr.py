@@ -1,19 +1,24 @@
-import re
+import io
+import os
 import pathlib
-from typing import Iterable, Optional
+import re
+from typing import Iterable, NoReturn, Optional
+
 import httpx
-from sqlalchemy import false
-from . import dbmgr, cfg
-from .imgmodel import PxImage
 from nonebot.log import logger
 from PIL import Image
-import io
+from sqlalchemy import false
 
-_cache_dir = cfg.get_local_img_cache_path()
+from .cfg import get_local_img_cache_path, get_pxv_proxy, get_UA
+from .dbmgr_pg import DBMgrBuilder
+from .dbmodel import BaseLolicon
+from .imgmodel import PxImage
+
+_cache_dir = get_local_img_cache_path()
 _cache_dir = pathlib.Path(_cache_dir)
-_pxv_proxy = cfg.get_pxv_proxy()
-_UA = cfg.get_UA()
-db_lolicon_mgr = dbmgr.DBMgrBuilder.get_db_lolicon()
+_pxv_proxy = get_pxv_proxy()
+_UA = get_UA()
+db_lolicon_mgr = DBMgrBuilder.get_db_lolicon()
 
 
 def print_func_name(func):
@@ -36,7 +41,7 @@ async def get_img_from_local(pid: int) -> PxImage:
     item = await db_lolicon_mgr.get_one_by_pid(pid)
     logger.info(f"图片正从本地加载：{item}")
     if item:
-        item = dbmgr.BaseLolicon.parse_obj(item)
+        item = BaseLolicon.parse_obj(item)
         lpath = _cache_dir / item.url.split("/")[-1]
         logger.info(f"从本地获取图片：{lpath}")
         with open(lpath, "rb") as f:
@@ -44,12 +49,26 @@ async def get_img_from_local(pid: int) -> PxImage:
     else:
         raise ValueError(f"数据库中没有：{pid}")
 
+async def del_img(pid:int)->str:
+    item = await db_lolicon_mgr.get_one_by_pid(pid)
+    if item:
+        item = BaseLolicon.parse_obj(item)
+        lpath = _cache_dir / item.url.split("/")[-1]
+        logger.debug(f"hit local img:{lpath}")
+        try:
+            await db_lolicon_mgr.delete_one_by_pid(pid)
+            os.remove(lpath)
+        except Exception as err:
+            return str(err)
+        return f"Delete success:{pid}"
+    else:
+        return "No need to delete."
 
 @print_func_name
 async def get_info_by_pid(
     pid: int,
     client: httpx.AsyncClient
-) -> dbmgr.BaseLolicon:
+) -> BaseLolicon:
     """生成图片信息
     !会同步lolicon数据库!
 
@@ -67,7 +86,7 @@ async def get_info_by_pid(
         raise ValueError(f"获取原图url失败：{res['message']}")
     res = res['body']
     logger.debug(f"获取到图片info:{res['illustTitle']}")
-    info = dbmgr.BaseLolicon(
+    info = BaseLolicon(
         pid=pid,
         uid=res['userId'],
         title=res['illustTitle'],
@@ -133,7 +152,7 @@ async def get_img_by_pid(
 
 @print_func_name
 async def get_img_by_info(
-    info: dbmgr.BaseLolicon,
+    info: BaseLolicon,
     client: httpx.AsyncClient
 ) -> PxImage:
     """根据info获取图片本体
@@ -190,7 +209,7 @@ async def get_img_by_tags(
 async def get_info_by_tags(
     tags: Iterable[str],
     client: httpx.AsyncClient
-) -> dbmgr.BaseLolicon:
+) -> BaseLolicon:
     """根据标签获取图片id
     !会同步lolicon数据库!
     Args:
@@ -215,7 +234,7 @@ async def get_info_by_tags(
         isR18 = r['r18'] or ('R-18' in r['tags'])
         r['r18'] = isR18
         r['url'] = r['urls']['original'].replace("i.pixiv.re", "i.pximg.net")
-        ret = dbmgr.BaseLolicon.parse_obj(r)
+        ret = BaseLolicon.parse_obj(r)
         # 第二步 保存数据到本地数据库
         logger.debug(f"同步数据库 {ret.pid}")
         await db_lolicon_mgr.update_one(ret, upsert=True)

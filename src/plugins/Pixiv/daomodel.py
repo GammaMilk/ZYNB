@@ -1,23 +1,24 @@
-from ast import Delete
 import datetime
-from email.policy import default
 from typing import List, Optional
 from pydantic import BaseModel
+import gino
+import nonebot
 from sqlalchemy import update,delete
 from sqlalchemy.dialects.postgresql import ARRAY,insert
+from .dbmodel import BaseLolicon
 
-from services.GinoDAOService import db
-from dbmodel import BaseLolicon
+
+def get_right_db_client() -> gino.Gino:
+    client = nonebot.require("GinoDAO")
+    client = client.pgdb
+    #print(type(client))
+    #assert(isinstance(client, gino.Gino))
+    return client
+
+db = get_right_db_client()
 
 class LoliconDAOModel(db.Model):
     __tablename__ = "lolicon"
-
-    id = db.Column(db.Integer(), primary_key=True)
-    user_qq = db.Column(db.BigInteger(), nullable=False)
-    group_id = db.Column(db.BigInteger())
-    text = db.Column(db.Text())
-    plain_text = db.Column(db.Text())
-    create_time = db.Column(db.DateTime(timezone=True), nullable=False)
 
     pid = db.Column(db.BigInteger(), nullable=False,
                     primary_key=True, unique=True)
@@ -71,17 +72,13 @@ class LoliconDAOModel(db.Model):
     async def update_one(cls, loli:BaseLolicon, upsert=False):
         if not isinstance(loli,BaseLolicon):
             raise ValueError()
-        found = await cls.query.where(cls.pid == loli.pid).gino.first()
-        match (not not found, upsert):
-            case (True,True):
-                stmt = update(cls).where(cls.pid==loli.pid).values(**loli.dict())
-            case (False,True):
-                stmt = insert(cls).values(**loli.dict())
-            case (True,False):
-                stmt = None
-            case (False,False):
-                stmt = None
-        if stmt:
+        found = not not (await cls.query.where(cls.pid == loli.pid).gino.first())
+        if found:
+            stmt = update(cls).where(cls.pid==loli.pid).values(**loli.dict())
+        else:
+            stmt = insert(cls).values(**loli.dict()) if upsert else None
+        
+        if stmt is not None:
             executing = await stmt.gino.first()
     
     @classmethod
@@ -102,5 +99,5 @@ class LoliconDAOModel(db.Model):
     async def delete_one(cls, pid:int):
         if not isinstance(pid,int):
             raise ValueError()
-        stmt = delete(cls).values(cls.pid == pid)
+        stmt = delete(cls).where(cls.pid == pid)
         return await stmt.gino.first()
