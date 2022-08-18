@@ -25,6 +25,7 @@ sudo apt -y install python3-pip
 sudo pip install poetry
 
 # poetry init dependencies
+poetry cache clear --all pypi -n
 poetry install
 
 mv RENAME_THIS_FILE_TO_.env.dev .env.dev

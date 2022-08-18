@@ -2,8 +2,6 @@ import datetime
 
 import nonebot
 from loguru import logger
-from motor import motor_asyncio
-from pydantic import BaseModel
 
 from .daomodel import LoliconDAOModel
 from .dbmodel import BaseFav, BaseLolicon, BasePid, BasePixiv
