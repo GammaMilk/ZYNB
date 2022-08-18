@@ -36,7 +36,7 @@ async def get_img_from_local(pid: int) -> PxImage:
     item = await db_lolicon_mgr.get_one_by_pid(pid)
     logger.info(f"图片正从本地加载：{item}")
     if item:
-        item = dbmgr.DBModelLolicon.parse_obj(item)
+        item = dbmgr.BaseLolicon.parse_obj(item)
         lpath = _cache_dir / item.url.split("/")[-1]
         logger.info(f"从本地获取图片：{lpath}")
         with open(lpath, "rb") as f:
@@ -49,7 +49,7 @@ async def get_img_from_local(pid: int) -> PxImage:
 async def get_info_by_pid(
     pid: int,
     client: httpx.AsyncClient
-) -> dbmgr.DBModelLolicon:
+) -> dbmgr.BaseLolicon:
     """生成图片信息
     !会同步lolicon数据库!
 
@@ -67,7 +67,7 @@ async def get_info_by_pid(
         raise ValueError(f"获取原图url失败：{res['message']}")
     res = res['body']
     logger.debug(f"获取到图片info:{res['illustTitle']}")
-    info = dbmgr.DBModelLolicon(
+    info = dbmgr.BaseLolicon(
         pid=pid,
         uid=res['userId'],
         title=res['illustTitle'],
@@ -133,7 +133,7 @@ async def get_img_by_pid(
 
 @print_func_name
 async def get_img_by_info(
-    info: dbmgr.DBModelLolicon,
+    info: dbmgr.BaseLolicon,
     client: httpx.AsyncClient
 ) -> PxImage:
     """根据info获取图片本体
@@ -190,7 +190,7 @@ async def get_img_by_tags(
 async def get_info_by_tags(
     tags: Iterable[str],
     client: httpx.AsyncClient
-) -> dbmgr.DBModelLolicon:
+) -> dbmgr.BaseLolicon:
     """根据标签获取图片id
     !会同步lolicon数据库!
     Args:
@@ -215,14 +215,14 @@ async def get_info_by_tags(
         isR18 = r['r18'] or ('R-18' in r['tags'])
         r['r18'] = isR18
         r['url'] = r['urls']['original'].replace("i.pixiv.re", "i.pximg.net")
-        ret = dbmgr.DBModelLolicon.parse_obj(r)
+        ret = dbmgr.BaseLolicon.parse_obj(r)
         # 第二步 保存数据到本地数据库
         logger.debug(f"同步数据库 {ret.pid}")
         await db_lolicon_mgr.update_one(ret, upsert=True)
     except Exception as e:
         # Fall back to local mode
         logger.error(f"NETWORK ERROR, FALLBACK TO LOCAL MODE{e}")
-        ret = await dbmgr.get_local_info_by_tags(tags)
+        ret = await db_lolicon_mgr.get_local_info_by_tags(tags)
     return ret
 
 

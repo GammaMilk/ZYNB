@@ -52,7 +52,7 @@ __plugin_settings__ = {
     "cmd": ["help"],
 }
 
-helpHandler = on_command("help", priority=5, block=True)
+helpHandler = on_command("helper", priority=5, block=True)
 th = on_startswith("tt", priority=5, block=True)
 
 # 地图

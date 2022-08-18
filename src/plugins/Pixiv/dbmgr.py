@@ -5,7 +5,7 @@ import nonebot
 from pydantic import BaseModel
 from motor import motor_asyncio
 
-from .dbmodel import DBBaseModelPid, DBModelLolicon, DBModelPixiv, DBModelFav
+from .dbmodel import BasePid, BaseLolicon, BasePixiv, BaseFav
 
 def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
     client = nonebot.require("nonebot_plugin_navicat")
@@ -13,46 +13,14 @@ def get_right_db_client() -> motor_asyncio.AsyncIOMotorClient:
     assert(isinstance(client, motor_asyncio.AsyncIOMotorClient))
     return client
 
-
 client = get_right_db_client()
 db = client['db_pixiv']
 c = db['pixiv_data']
 c_info = db['lolicon_data']
 
-
-def get_db_database() -> motor_asyncio.AsyncIOMotorDatabase:
-    """获取数据库Database链接实例
-
-    Returns:
-        motor_asyncio.AsyncIOMotorDatabase: Database
-    """
-    return db
-
-
-def get_db_file_collection() -> motor_asyncio.AsyncIOMotorCollection:
-    """获取数据库Collection链接实例
-
-    Returns:
-        motor_asyncio.AsyncIOMotorCollection: Collection
-    """
-    return c
-
-
-async def get_local_info_by_tags(tags: list[str]):
-    db_query = [{'$match':
-                 {"tags": {'$all': tags}},    # 条件
-                 }] if tags else []
-    db_query += [{'$sample': {'size': 1}}]
-    cur = c_info.aggregate(db_query)
-    res = await cur.to_list(1)
-    if res:
-        return DBModelLolicon.parse_obj(res[0])
-    raise ValueError("No match imgs")
-
-
 class DBPidMgr:
     c: motor_asyncio.AsyncIOMotorCollection=None
-    ModelMode:TypeAlias = DBModelPixiv
+    ModelMode:TypeAlias = BasePixiv
     def __init__(self, collection: motor_asyncio.AsyncIOMotorCollection) -> None:
         self.c = collection
     # CRUD
@@ -69,7 +37,7 @@ class DBPidMgr:
         return await self.c.delete_one({'pid': pid})
 
 class DBLoliconMgr(DBPidMgr):
-    ModelMode = DBModelLolicon
+    ModelMode = BaseLolicon
     async def get_local_info_by_tags(self, tags: list[str]):
         db_query = [{'$match':
                     {"tags": {'$all': tags}},    # 条件
@@ -78,11 +46,11 @@ class DBLoliconMgr(DBPidMgr):
         cur = self.c.aggregate(db_query)
         res = await cur.to_list(1)
         if res:
-            return DBModelLolicon.parse_obj(res[0])
+            return BaseLolicon.parse_obj(res[0])
         raise ValueError("No match imgs")
 
 class DBFavMgr(DBPidMgr):
-    ModelMode = DBModelFav
+    ModelMode = BaseFav
     pass
 
 class DBMgrBuilder():
@@ -90,7 +58,7 @@ class DBMgrBuilder():
     def get_db_file()->DBPidMgr:
         return DBPidMgr(db['pixiv_data'])
     @staticmethod
-    def get_db_lolicon() -> DBPidMgr:
+    def get_db_lolicon() -> DBLoliconMgr:
         return DBLoliconMgr(db['lolicon_data'])
     @staticmethod
     def get_db_fav() -> DBFavMgr:

@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 
 
-class DBBaseModelPid(BaseModel):
+class BasePid(BaseModel):
     pid: int
     url: str
 
 
-class DBModelPixiv(DBBaseModelPid):
+class BasePixiv(BasePid):
     """
     Pixiv图片缓存数据库模型类
     """
@@ -16,7 +16,7 @@ class DBModelPixiv(DBBaseModelPid):
     lpath: str
 
 
-class DBModelLolicon(DBBaseModelPid):
+class BaseLolicon(BasePid):
     """
     Lolicon数据库模型类(r18保存之前*必须检验*)
     """
@@ -30,7 +30,7 @@ class DBModelLolicon(DBBaseModelPid):
     tags: list[str]
     url: str
 
-class DBModelFav(DBBaseModelPid):
+class BaseFav(BasePid):
     """
     收藏数据库模型类
     """
